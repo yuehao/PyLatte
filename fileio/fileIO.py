@@ -7,29 +7,23 @@ class LatticeFile(object):
     It can be reused by all supported external files
     '''
     def __init__(self):
-        self.elementList=[]
-        self.elementNameDict={}
-        self.beamlineList=[]
-        self.beamlineNameDict={}
-        self.beamlineElementSet={}
+        self.elementList = []
+        self.elementNameDict = {}
+        self.beamlineList = []
+        self.beamlineNameDict = {}
+        self.beamlineElementSet = {}
         self.useLineList = []
         self.elementPosInUseLine = []
         self.useline= ''
 
-
-
     def checkType(self, typename, parameterName=None):
         return None
-
 
     def toConvert(self, rule):
         return None
 
-
     def parseFrom(self, filename):
         pass
-
-
 
     def getElementIndex(self, elename):
         elename = elename.upper()
@@ -41,21 +35,21 @@ class LatticeFile(object):
             return None
 
 
-    def addElement(self, name, eletype, **params):
-        roottype=''
-        if self.checkType(eletype) == False:
-            if (self.getElementIndex(eletype) is None):
-                print ("The element {} with type {} is not recognized when adding this element".format(name, eletype))
+    def addElement(self, _name, _eletype, **params):
+        roottype = ''
+        if self.checkType(_eletype) == False:
+            if (self.getElementIndex(_eletype) is None):
+                print ("The element {} with type {} is not recognized when adding this element".format(_name, _eletype))
                 raise KeyError
             else:
-                roottype=self.getElementRootType(eletype)
+                roottype = self.getElementRootType(_eletype)
 
         thisele = {}
-        name = name.upper()
-        eletype = eletype.upper()
+        name = _name.upper()
+        eletype = _eletype.upper()
         thisele['NAME'] = name
         thisele['TYPE'] = eletype
-        thisele['__USAGE_DICT']={}
+        thisele['__USAGE_DICT'] = {}
         thisele['__ID_IN_USELINE'] = []
 
         for k, v in params.items():
@@ -63,13 +57,13 @@ class LatticeFile(object):
                 pass
             elif k.upper() == 'TYPE':
                 pass
-            elif self.checkType(eletype, k) or self.checkType(roottype,k):
+            elif self.checkType(eletype, k) or self.checkType(roottype, k):
                 thisele[k.upper()] = v
             else:
                 print('Unrecognized parameter name {} in element {} when adding'.format(k, name))
                 raise KeyError
 
-        ind=self.getElementIndex(name)
+        ind = self.getElementIndex(name)
         if ind is None:
             cur_len = len(self.elementList)
             self.elementNameDict[name] = cur_len
@@ -99,15 +93,15 @@ class LatticeFile(object):
             print('Unrecognized element name {} when getting properties'.format(elename))
             raise KeyError
         if keyname is None:
-            root_type=self.getElementRootType(elename)
-            cur_type= self.elementList[ind]['TYPE']
-            if cur_type==root_type:
-                return {k:v for k,v in self.elementList[ind].items()
+            root_type = self.getElementRootType(elename)
+            cur_type = self.elementList[ind]['TYPE']
+            if cur_type == root_type:
+                return {k: v for k, v in self.elementList[ind].items()
                         if partial_key.upper() in k and k not in ['NAME', '__USAGE_DICT', '__ID_IN_USELINE']}
             else:
                 return self.getElementProperties(cur_type, None, partial_key).update(
                     {k: v for k, v in self.elementList[ind].items()
-                     if partial_key.upper() in k and k not in ['TYPE','NAME', '__USAGE_DICT', '__ID_IN_USELINE']})
+                     if partial_key.upper() in k and k not in ['TYPE', 'NAME', '__USAGE_DICT', '__ID_IN_USELINE']})
         else:
             keyname = keyname.upper()
             if keyname in self.elementList[ind]:
@@ -118,7 +112,7 @@ class LatticeFile(object):
                 return None
 
     def getParentElements(self, elename):
-        pe_list=[]
+        pe_list = []
         ind = self.getElementIndex(elename)
         if ind is None:
             print('Unrecognized element name {} when finding parents'.format(elename))
@@ -143,7 +137,6 @@ class LatticeFile(object):
 
     def modifyElement(self, elename, increment=False, **params):
         elename = elename.upper()
-
         ind = self.getElementIndex(elename)
         if ind is None:
             print('Unrecognized element name {} when modifying'.format(elename))
@@ -160,22 +153,22 @@ class LatticeFile(object):
         return
 
     def modifyAllElements(self, eletype, parameterName, parameterValue, increment=False, name_contain=''):
-        eletype=eletype.upper()
-        parameterName=parameterName.upper()
+        eletype = eletype.upper()
+        parameterName = parameterName.upper()
         if self.checkType(eletype):
-            roottype=eletype
+            roottype = eletype
         else:
-            roottype=self.getElementRootType(eletype)
+            roottype = self.getElementRootType(eletype)
         if not self.checkType(roottype, parameterName):
             print('The parameter name {} is not good for element type {}'.format(parameterName, eletype))
             raise KeyError
         for ele in self.elementList:
             if name_contain in ele['NAME']:
-                current_value=self.getElementProperties(ele['NAME'],parameterName)
-                future_value= parameterValue
+                current_value = self.getElementProperties(ele['NAME'], parameterName)
+                future_value = parameterValue
                 if increment and current_value is not None:
                     future_value += current_value
-                if ele['TYPE']==eletype:
+                if ele['TYPE'] == eletype:
                     ele[parameterName] = future_value
                 elif eletype in self.getParentElements(ele['NAME']) and current_value != future_value:
                     ele[parameterName] = future_value

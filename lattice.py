@@ -6,7 +6,7 @@ import copy
 
 
 class Lattice(object):
-    def __init__(self, lattice_file, ref_energy):
+    def __init__(self):
         if isinstance(lattice_file, fileIO.LatticeFile):
             if len(lattice_file.beamlineList) > 0:
                 self.lattice_file = lattice_file

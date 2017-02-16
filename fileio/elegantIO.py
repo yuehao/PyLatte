@@ -158,6 +158,7 @@ class elegantLatticeFile(LatticeFile):
     propertyDict={}
 
     def __init__(self, filename='', readfrom=''):
+        LatticeFile.__init__(self)
         self.filename=filename
         if len(elegantLatticeFile.elegantTypes)==0:
             self.resetIODict()
