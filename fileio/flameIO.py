@@ -13,6 +13,7 @@ class FlameLatticeFile(LatticeFile):
     def __init__(self, filename='', read_from=''):
         LatticeFile.__init__(self)
         self.filename=filename
+        self.machine = None
         if read_from != '':
             self.parseFrom(read_from)
 
@@ -45,6 +46,20 @@ class FlameLatticeFile(LatticeFile):
     def checkType(self, typename, parameterName=None):
         #Should be checked by the flame parser
         return True
+
+    def run(self):
+        if self.machine is None:
+            print('No lattice is defined')
+            return
+        s=self.machine.allocState({})
+        self.machine.propagate(s,0,1)
+        startn=1
+        stopn=len(self.machine)-1
+        self.flame_result=self.machine.propagate(s,startn,stopn-startn+1,observe=range(len(self.machine)))
+
+
+
+
 
 
 
