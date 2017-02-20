@@ -6,11 +6,45 @@ import copy
 
 
 class Lattice(object):
-    _modes=['tpsa', 'tracking']
-    _radiation=['ISR','eloss']
-    _particle=['electron', 'proton', 'position', 'antiproton', 'ion']
+    _mode_type=['TPSA', 'TRACKING']
+    _radiation_type=['ISR','ELOSS']
 
-    def __init__(self, lattice_file, mode='TPSA', ref_energy=1e9, particle='electron', dimension=6, radiation='ISR', charge=-1, mass=510998.9):
+
+    def __init__(self, lattice_file = None, mode='TPSA', ref_energy=1e9, radiation='ISR'):
+
+        self._lattice_file = None
+        if lattice_file is not None:
+            self.read_lattice(lattice_file)
+        self._mode=mode
+        self._ref_energy = ref_energy
+        self._radiation = radiation
+        self.sequence=None
+
+        self.make_sequence()
+
+    @property
+    def mode(self):
+        return self._mode
+
+    @mode.setter
+    def mode(self,value):
+        if value.upper() in Lattice._mode_type:
+            self._mode = value.upper()
+        else:
+            raise KeyError
+
+    @property
+    def radiation(self):
+        return self._radiation
+
+    @mode.setter
+    def radiation(self, value):
+        if value.upper() in Lattice._radiation_type:
+            self._radiation = value.upper()
+        else:
+            raise KeyError
+
+    def read_lattice(self, lattice_file):
         if isinstance(lattice_file, fileIO.LatticeFile):
             if len(lattice_file.beamlineList) > 0:
                 self.lattice_file = lattice_file
@@ -21,21 +55,15 @@ class Lattice(object):
             print("No lattice information given, exiting\n")
             exit(-1)
 
-        self.ref_energy = ref_energy
-        self.dimension = dimension
-        self.radiation = radiation
-        self.charge = charge
-        self.mass = mass
-
-        self.useline=lattice_file.useline
-        if self.useline=='':
-            self.useline=lattice_file.beamlineList[-1]['NAME']
-
-        self.make_sequence()
+        self.useline = lattice_file.useline
+        if self.useline == '':
+            self.useline = lattice_file.beamlineList[-1]['NAME']
+        self._make_sequence()
 
 
-    def make_sequence(self):
-        pass
+    def _make_sequence(self):
+        self.sequence=[]
+
 
 
 
