@@ -58,6 +58,45 @@ class FlameLatticeFile(LatticeFile):
         self.flame_result=self.machine.propagate(s,startn,stopn-startn+1,observe=range(len(self.machine)))
 
 
+    def collect_data(self, *arg_list, **kwargs):
+        arg_kws=['pos', 'ref_beta','ref_bg', 'ref_gamma', 'ref_IonEk', 'ref_IonEs',
+                 'ref_IonQ', 'ref_IonW', 'ref_IonZ', 'ref_phis', 'ref_SampleIonK',
+                 'beta', 'bg', 'gamma', 'IonEk', 'IonEs','IonQ', 'IonW','IonZ', 'phis',
+                 'SampleIonK', 'moment0','moment0_rms', 'moment0_env', 'moment1']
+        self.result_ref=np.zeros((len(self.flame_result), 8))
+        self.result_moments = np.zeros((len(self.flame_result), 14))
+        for ind in range(len(self.flame_result)):
+            itm=self.flame_result[ind]
+            ind_ele=itm[0]
+            
+            self.result_ref[ind, 0] = ind_ele
+            self.result_ref[ind, 1] = itm[1].pos
+            self.result_ref[ind, 2] = itm[1].ref_beta
+            self.result_ref[ind, 3] = itm[1].ref_bg
+            self.result_ref[ind, 4] = itm[1].ref_gamma
+            self.result_ref[ind, 5] = itm[1].ref_IonEk
+            self.result_ref[ind, 6] = itm[1].ref_phis
+            self.result_ref[ind, 7] = itm[1].ref_SampleIonK
+
+            self.result_moments[ind, 0] = ind_ele
+            self.result_moments[ind, 1] = itm[1].pos
+            self.result_moments[ind, 2:8] = itm[1].moment0_env[0:6]
+            self.result_moments[ind, 8:] = itm[1].moment0_rms[0:6]
+
+            
+            
+            
+            
+            
+            
+            
+
+
+
+
+
+
+
 
 
 
