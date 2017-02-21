@@ -6,7 +6,7 @@ import numpy as np
 class Element(object):
     elementTypes = set(
         ['DRIFT', 'DIPOLE', 'QUADRUPOLE', 'SEXTRUPOLE', 'OCTUPOLE', 'MULTIPOLE', 'SOLENOID', 'MATRIX', 'TPSMAP',
-         'BEAMBEAM', 'CAVITY', 'MARKER', 'BPM', 'SOLENOID', 'KICKER', 'CENTER', 'MALIGN', 'PROFILE','STRIPPER']
+         'BEAMBEAM', 'CAVITY', 'MARKER', 'BPM', 'SOLENOID', 'KICKER', 'CENTER', 'MALIGN', 'PROFILE','STRIPPER', 'EMFIELD']
     )
     propertyNames = set(
         ['NAME', 'L', 'TYPE', 'RMS_DISPLACEMENT', 'RMS_ANGLE_DISPLACEMENT', 'TILT', 'N_STEP', 'APERTURE',

@@ -233,31 +233,31 @@ class ImpactHeader(object):
 
 class ImpactInputFile(LatticeFile):
     element_type={'DRIFT':0,
-                  'QUAD':1,
+                  'QUADRUPOLE':1,
                   'CONSTFOCUS':2,
                   'SOLENOID':3,
                   'DIPOLE':4,
                   'DTL':101,
                   'CCDTL':102,
                   'CCL':103,
-                  'SC':104,
+                  'CAVITY':104,
                   'SOLENOIDRF':105,
                   'EMFIELD':110,
                   'CENTER': -1,
                   'BPM': -2,
                   'PROFILE': -2,
                   }
-    common_parameter={'L':0.0, 'STEPS':10, 'MAPSTEPS':20, 'RADIUS':0.01, 'FILEID':0}
+    common_parameter={'L':0.0, 'N_STEP':10, 'MAP_STEP':20, 'APERTURE':0.01, 'FILEID':0}
     error_parameter={'DX':0.0, 'DY':0.0, 'DANGX':0.0, 'DANGY':0.0, 'DANGZ':0}
     parameters={
-                'QUAD': {'GRADIENT':0.0, },
+                'QUADRUPOLE': {'GRADIENT':0.0, },
                 'CONSTFOCUS': {'KX':0.0, 'KY':0.0, 'KZ':0.0,} ,
                 'SOLENOID': {'BZ':0.0,},
                 'DIPOLE':{'ANGLE':0.0,'K1':0.0,'E1':0.0, 'E2':0.0, 'H1':0.0, 'H2':0.0, 'FINT':0.0},
                 'DTL': {'SCALE':0.0, 'FREQ':0.0, 'PHASE':0.0, 'Q1L':0.0, 'Q1G':0.0, 'Q2L':0.0, 'Q2G':0.0},
                 'CCDTL': {'SCALE':0.0, 'FREQ':0 ,'PHASE':0.0},
                 'CCL': {'SCALE':0.0, 'FREQ':0 ,'PHASE':0.0},
-                'SC': {'SCALE':0.0, 'FREQ':0 ,'PHASE':0.0},
+                'CAVITY': {'SCALE':0.0, 'FREQ':0 ,'PHASE':0.0},
                 'SOLENOIDRF': {'SCALE':0.0, 'FREQ':0.0,'PHASE':0.0, 'BZ':0.0},
                 'EMFIELD': {'SCALE':0.0, 'FREQ':0.0,'PHASE':0.0, 'BZ':0.0, 'MODE':1.0, 'COOR':1.0},
 
@@ -282,9 +282,9 @@ class ImpactInputFile(LatticeFile):
                 if ele['TYPE']=='DRIFT':
                     f.write('{l}\t{s1}\t{s2}\t{tp}\t{r}\t/'.format(l=dtemp['L'],s1=dtemp['STEPS'], s2=dtemp['MAPSTEPS'],
                                                                 tp=ImpactInputFile.element_type[ele['TYPE']],r=dtemp['RADIUS']))
-                if ele['TYPE']=='QUAD':
+                if ele['TYPE']=='QUADRUPOLE':
                     f.write('{l}\t{s1}\t{s2}\t{tp}\t{g}\t{id}\t{r}\t{dx}\t{dy}\t{ax}\t{ay}\t{az}/'.
-                            format(l=dtemp['L'],s1=dtemp['STEPS'], s2=dtemp['MAPSTEPS'], tp=ImpactInputFile.element_type[ele['TYPE']],
+                            format(l=dtemp['L'],s1=dtemp['N_STEP'], s2=dtemp['MAP_STEP'], tp=ImpactInputFile.element_type[ele['TYPE']],
                                    r=dtemp['RADIUS'],g=dtemp['GRADIENT'],id=dtemp['FILEID'], dx=dtemp['DX'],dy=dtemp['DY'],
                                    ax=dtemp['DANGX'],ay=dtemp['DANGY'],az=dtemp['DANGZ']))
                 if ele['TYPE'] == 'CONSTFOCUS':

@@ -191,10 +191,11 @@ class LatticeFile(object):
         :param colors: The color for LINAC, dipole, Quad and multipoles
         :return:
         '''
-        self.setUseLine()
+        if self.elementPosInUseLine is None:
+            self.setUseLine()
         bl_pos, bl_list = self.elementPosInUseLine, self.useLineList
         print(beamline_name, len(bl_pos), len(bl_list))
-        import matplotlib.pyplot as mpl
+        import matplotlib.pyplot as plt
         from matplotlib.patches import Rectangle
         from matplotlib.patches import FancyBboxPatch
 
@@ -336,14 +337,13 @@ class LatticeFile(object):
             #else:
             #    pass
 
-    def _expandLine(self, linename):
-        linename=linename.upper()
-        line_ind = self.getBeamlineIndex(linename)
+    def _expandLine(self, line_ind):
+
         expandedLine=[]
-        briefline = self.beamlineList[self.beamlineNameDict[linename]]['LINE']
+        briefline = self.beamlineList[line_ind]['LINE']
         for elename in briefline:
             if elename in self.beamlineNameDict:
-                expandedLine += self._expandLine(elename)
+                expandedLine += self._expandLine(self.beamlineNameDict[elename])
             else:
                 expandedLine.append(elename)
         return expandedLine
@@ -363,7 +363,7 @@ class LatticeFile(object):
             print('The beamline {} does no exist, can not prepare the line to be used'.format(linename))
             raise KeyError
 
-        self.useLineList = self._expandLine(linename)
+        self.useLineList = self._expandLine(line_ind)
 
         ele_ind=0
         for ele in self.useLineList:
