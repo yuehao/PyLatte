@@ -293,10 +293,10 @@ class elegantLatticeFile(LatticeFile):
         return False
 
 
-    def plotBeamline(self, mpl_axis, beamline_name, colors=('DarkOrchid', 'Maroon', 'DeepSkyBlue', 'ForestGreen'),
+    def plotBeamline(self, plt_axis, beamline_name, colors=('DarkOrchid', 'Maroon', 'DeepSkyBlue', 'ForestGreen'),
                      heights=(0.7, 1, 0.8, 0.4), s_start=0):
         '''
-        :param mpl_axis: matplotlib axis variable
+        :param plt_axis: matplotlib axis variable
         :param beamline_name: name of beamline to be plotted.
         :param colors: The color for LINAC, dipole, Quad and multipoles
         :return:
@@ -308,12 +308,12 @@ class elegantLatticeFile(LatticeFile):
         from matplotlib.patches import Rectangle
         from matplotlib.patches import FancyBboxPatch
 
-        mpl_axis.set_xlim([s_start, s_start + bl_pos[-1]])
+        plt_axis.set_xlim([s_start, s_start + bl_pos[-1]])
 
-        mpl_axis.set_ylim([-1, 1])
-        mpl_axis.set_yticks([])
-        # mpl_axis.xaxis.set_ticks_position('none')
-        mpl_axis.axhline(0, color='black')
+        plt_axis.set_ylim([-1, 1])
+        plt_axis.set_yticks([])
+        # plt_axis.xaxis.set_ticks_position('none')
+        plt_axis.axhline(0, color='black')
 
         for i in range(len(bl_list)):
             start = bl_pos[i] + s_start
@@ -323,7 +323,7 @@ class elegantLatticeFile(LatticeFile):
             lasttype = self.elementList[indlist[-1]]['TYPE']
             if l_ele > 0:
                 if lasttype == 'RFCA' or lasttype == 'RFCW':
-                    mpl_axis.add_patch(
+                    plt_axis.add_patch(
                         FancyBboxPatch((start, -heights[0] / 2.0), l_ele, heights[0], ec=colors[0], fc=colors[0]))
                 elif 'BEND' in lasttype:
                     shift = 0
@@ -331,7 +331,7 @@ class elegantLatticeFile(LatticeFile):
                         if 'K1' in self.elementList[ind]:
                             shift = heights[1] * 0.2 * np.sign(self.elementList[ind]['K1'])
                             break
-                    mpl_axis.add_patch(
+                    plt_axis.add_patch(
                         Rectangle((start, -heights[1] / 2.0 + shift), l_ele, heights[1], angle=0.0, ec=colors[1],
                                   fc='none'))
 
@@ -341,12 +341,12 @@ class elegantLatticeFile(LatticeFile):
                         if 'K1' in self.elementList[ind]:
                             shift = heights[2] * 0.5 * np.sign(self.elementList[ind]['K1'])
                             break
-                    mpl_axis.add_patch(
+                    plt_axis.add_patch(
                         Rectangle((start, -heights[2] / 2.0 + shift), l_ele, heights[2], angle=0.0, ec=colors[2],
                                   fc='none'))
 
                 elif 'DRIF' not in lasttype:
-                    mpl_axis.add_patch(
+                    plt_axis.add_patch(
                         Rectangle((start, -heights[3] / 2.0), l_ele, heights[3], angle=0.0, ec=colors[3], fc='none'))
 
     def parseFrom(self, inputfile):

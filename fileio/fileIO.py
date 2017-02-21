@@ -13,10 +13,12 @@ class LatticeFile(object):
         self.beamlineNameDict = {}
         self.beamlineElementSet = {}
         self.useLineList = []
-        self.elementPosInUseLine = []
+        self.elementPosInUseLine = None
         self.useline= ''
 
     def checkType(self, typename, parameterName=None):
+        from ..element import *
+
         return None
 
     def toConvert(self, rule):
@@ -181,7 +183,61 @@ class LatticeFile(object):
             #    if self.elementList[self.elementNameDict[self.elementList[i]['TYPE']]] == eletype:
             #        self.elementList[i][parameterName]=parameterValue
 
+    def plotBeamline(self, plt_axis, beamline_name, colors=('DarkOrchid', 'Maroon', 'DeepSkyBlue', 'ForestGreen'),
+                     heights=(0.7, 1, 0.8, 0.4), s_start=0):
+        '''
+        :param plt_axis: matplotlib axis variable
+        :param beamline_name: name of beamline to be plotted.
+        :param colors: The color for LINAC, dipole, Quad and multipoles
+        :return:
+        '''
+        self.setUseLine()
+        bl_pos, bl_list = self.elementPosInUseLine, self.useLineList
+        print(beamline_name, len(bl_pos), len(bl_list))
+        import matplotlib.pyplot as mpl
+        from matplotlib.patches import Rectangle
+        from matplotlib.patches import FancyBboxPatch
 
+        plt_axis.set_xlim([s_start, s_start + bl_pos[-1]])
+
+        plt_axis.set_ylim([-1, 1])
+        plt_axis.set_yticks([])
+        # plt_axis.xaxis.set_ticks_position('none')
+        plt_axis.axhline(0, color='black')
+
+        for i in range(len(bl_list)):
+            start = bl_pos[i] + s_start
+            ele = bl_list[i]
+            indlist = self.getParentElements(ele)
+            l_ele = bl_pos[i + 1] - bl_pos[i]
+            lasttype = self.elementList[indlist[-1]]['TYPE']
+            if l_ele > 0:
+                if lasttype == 'RFCA' or lasttype == 'RFCW':
+                    plt_axis.add_patch(
+                        FancyBboxPatch((start, -heights[0] / 2.0), l_ele, heights[0], ec=colors[0], fc=colors[0]))
+                elif 'BEND' in lasttype:
+                    shift = 0
+                    for ind in indlist:
+                        if 'K1' in self.elementList[ind]:
+                            shift = heights[1] * 0.2 * np.sign(self.elementList[ind]['K1'])
+                            break
+                    plt_axis.add_patch(
+                        Rectangle((start, -heights[1] / 2.0 + shift), l_ele, heights[1], angle=0.0, ec=colors[1],
+                                  fc='none'))
+
+                elif 'QUAD' in lasttype:
+                    shift = 0
+                    for ind in indlist:
+                        if 'K1' in self.elementList[ind]:
+                            shift = heights[2] * 0.5 * np.sign(self.elementList[ind]['K1'])
+                            break
+                    plt_axis.add_patch(
+                        Rectangle((start, -heights[2] / 2.0 + shift), l_ele, heights[2], angle=0.0, ec=colors[2],
+                                  fc='none'))
+
+                elif 'DRIF' not in lasttype:
+                    plt_axis.add_patch(
+                        Rectangle((start, -heights[3] / 2.0), l_ele, heights[3], angle=0.0, ec=colors[3], fc='none'))
 
     def getBeamlineIndex(self, linename):
         linename = linename.upper()
@@ -280,29 +336,34 @@ class LatticeFile(object):
             #else:
             #    pass
 
-    def expandLine(self, linename):
+    def _expandLine(self, linename):
         linename=linename.upper()
         line_ind = self.getBeamlineIndex(linename)
         expandedLine=[]
         briefline = self.beamlineList[self.beamlineNameDict[linename]]['LINE']
         for elename in briefline:
             if elename in self.beamlineNameDict:
-                expandedLine += self.expandLine(elename)
+                expandedLine += self._expandLine(elename)
             else:
                 expandedLine.append(elename)
         return expandedLine
 
-    def setUseLine(self, linename):
-        linename=linename.upper()
+    def setUseLine(self, linename=-1):
+        if linename == -1:
+            linename = self.beamlineList[-1]['NAME']
+            line_ind = len(self.beamlinelist)-1
+        else:
+            linename=linename.upper()
+            line_ind = self.getBeamlineIndex(linename)
         self.useline=linename
 
         self.elementPosInUseLine = [0.0, ]
-        line_ind = self.getBeamlineIndex(linename)
+
         if line_ind is None:
             print('The beamline {} does no exist, can not prepare the line to be used'.format(linename))
             raise KeyError
 
-        self.useLineList = self.expandLine(linename)
+        self.useLineList = self._expandLine(linename)
 
         ele_ind=0
         for ele in self.useLineList:

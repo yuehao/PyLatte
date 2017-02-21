@@ -62,7 +62,7 @@ class Lattice(object):
 
 
     def _make_sequence(self):
-        self.sequence=[]
+        pass
 
 
 
