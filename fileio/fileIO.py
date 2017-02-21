@@ -17,7 +17,7 @@ class LatticeFile(object):
         self.useline= ''
 
     def checkType(self, typename, parameterName=None):
-        from ..element import *
+
 
         return None
 
