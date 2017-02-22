@@ -21,29 +21,29 @@ class FlameLatticeFile(LatticeFile):
         if ele['TYPE']=='DRIFT' or parent_type=='DRIFT':
             return {'L':ele['L']}
         else:
-            return None
+            return False
 
     def isDipole(self, ele, parent_type=None):
         if ele['TYPE'] == 'SBEND' or parent_type=='SBEND':
             return {'L': ele['L'], 'ANGLE':ele['PHI'], 'K1':0}
         else:
-            return None
+            return False
 
     def isQuadrupole(self, ele, parent_type=None):
         if ele['TYPE'] == 'QUADRUPOLE' or parent_type=='QUADRUPOLE':
             return {'L': ele['L'], 'K1':ele['B2']}
         else:
-            return None
+            return False
     def isSolenoid(self,ele, parent_type=None):
         if ele['TYPE'] == 'SOLENOID' or parent_type=='SOLENOID':
             return {'L': ele['L'], 'B':ele['B']}
         else:
-            return None
+            return False
     def isCavity(self,ele, parent_type=None):
         if ele['TYPE'] == 'RFCAVITY' or parent_type=='RFCAVITY':
             return {'L': ele['L']}
         else:
-            return None
+            return False
 
 
     def parseFrom(self, lattice_file_name):

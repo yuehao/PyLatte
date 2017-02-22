@@ -17,8 +17,6 @@ class LatticeFile(object):
         self.useline= ''
 
     def checkType(self, typename, parameterName=None):
-
-
         return None
 
     def toConvert(self, rule):
@@ -183,8 +181,20 @@ class LatticeFile(object):
             #    if self.elementList[self.elementNameDict[self.elementList[i]['TYPE']]] == eletype:
             #        self.elementList[i][parameterName]=parameterValue
 
-    def plotBeamline(self, plt_axis, beamline_name, colors=('DarkOrchid', 'Maroon', 'DeepSkyBlue', 'ForestGreen'),
-                     heights=(0.7, 1, 0.8, 0.4), s_start=0):
+    def isDrift(self, ele, parent_type=None):
+        pass
+    def isDipole(self, ele, parent_type=None):
+        pass
+    def isQuadrupole(self, ele, parent_type=None):
+        pass
+    def isSolenoid(self, ele, parent_type=None):
+        pass
+    def isCavity(self, ele, parent_type=None):
+        pass
+
+
+    def plotBeamline(self, plt_axis, colors=('DarkOrchid', 'Maroon', 'DeepSkyBlue', 'ForestGreen'),
+                     heights=(1.2, 0.8, 0.5, 0.4), s_start=0, other_component = None, other_height=0.2):
         '''
         :param plt_axis: matplotlib axis variable
         :param beamline_name: name of beamline to be plotted.
@@ -194,10 +204,9 @@ class LatticeFile(object):
         if self.elementPosInUseLine is None:
             self.setUseLine()
         bl_pos, bl_list = self.elementPosInUseLine, self.useLineList
-        print(beamline_name, len(bl_pos), len(bl_list))
         import matplotlib.pyplot as plt
         from matplotlib.patches import Rectangle
-        from matplotlib.patches import FancyBboxPatch
+        from matplotlib.patches import Ellipse
 
         plt_axis.set_xlim([s_start, s_start + bl_pos[-1]])
 
@@ -208,37 +217,49 @@ class LatticeFile(object):
 
         for i in range(len(bl_list)):
             start = bl_pos[i] + s_start
-            ele = bl_list[i]
-            indlist = self.getParentElements(ele)
+            ele_name = bl_list[i]
+            ele=self.elementList[self.elementNameDict[ele_name]]
+            typelist = self.getParentElements(ele_name)
+
             l_ele = bl_pos[i + 1] - bl_pos[i]
-            lasttype = self.elementList[indlist[-1]]['TYPE']
+            #lasttype = self.elementList[indlist[-1]]['TYPE']
+            lasttype=typelist[-1]
             if l_ele > 0:
-                if lasttype == 'RFCA' or lasttype == 'RFCW':
+                if self.isCavity(ele, lasttype):
+                    tempdict=self.isCavity(ele, lasttype)
+
+                    #plt_axis.add_patch(
+                    #    Rectangle((start, -heights[0] / 2.0), tempdict['L'], heights[0], ec=colors[0], fc=colors[0]))
                     plt_axis.add_patch(
-                        FancyBboxPatch((start, -heights[0] / 2.0), l_ele, heights[0], ec=colors[0], fc=colors[0]))
-                elif 'BEND' in lasttype:
-                    shift = 0
-                    for ind in indlist:
-                        if 'K1' in self.elementList[ind]:
-                            shift = heights[1] * 0.2 * np.sign(self.elementList[ind]['K1'])
-                            break
+                        Ellipse((start+tempdict['L']/2.0, 0), tempdict['L'], heights[0] ,linewidth=1, color=colors[0]))
+
+                elif self.isDipole(ele, lasttype):
+                    tempdict=self.isDipole(ele, lasttype)
+                    shift = heights[1] * 0.2 * np.sign(tempdict['K1'])
                     plt_axis.add_patch(
-                        Rectangle((start, -heights[1] / 2.0 + shift), l_ele, heights[1], angle=0.0, ec=colors[1],
+                        Rectangle((start, -heights[1] / 2.0 + shift), tempdict['L'], heights[1], angle=0.0, ec=colors[1],
                                   fc='none'))
 
-                elif 'QUAD' in lasttype:
-                    shift = 0
-                    for ind in indlist:
-                        if 'K1' in self.elementList[ind]:
-                            shift = heights[2] * 0.5 * np.sign(self.elementList[ind]['K1'])
-                            break
+                elif self.isQuadrupole(ele, lasttype):
+                    tempdict = self.isQuadrupole(ele, lasttype)
+                    shift = heights[2] * 0.5 * np.sign(tempdict['K1'])
+
                     plt_axis.add_patch(
-                        Rectangle((start, -heights[2] / 2.0 + shift), l_ele, heights[2], angle=0.0, ec=colors[2],
+                        Rectangle((start, -heights[2] / 2.0 + shift), tempdict['L'], heights[2], angle=0.0, ec=colors[2],
                                   fc='none'))
 
-                elif 'DRIF' not in lasttype:
+                elif self.isSolenoid( ele, lasttype):
+                    tempdict = self.isSolenoid(ele, lasttype)
                     plt_axis.add_patch(
-                        Rectangle((start, -heights[3] / 2.0), l_ele, heights[3], angle=0.0, ec=colors[3], fc='none'))
+                        Rectangle((start, -heights[3] / 2.0), tempdict['L'], heights[3], angle=0.0, ec=colors[3], fc='none'))
+
+                elif self.isDrift(ele, lasttype) is False and other_component is not None:
+                    for i in range(len(other_component)):
+                        other_component[i]=other_component[i].upper()
+                    if lasttype in other_component:
+                        plt_axis.axvline(start+l_ele/2.0, ymin=0.5-other_height/4.0, ymax=0.5+other_height/4.0)
+
+
 
     def getBeamlineIndex(self, linename):
         linename = linename.upper()
