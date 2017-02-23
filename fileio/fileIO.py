@@ -14,13 +14,12 @@ class LatticeFile(object):
         self.beamlineElementSet = {}
         self.useLineList = []
         self.elementPosInUseLine = None
+
         self.useline= ''
 
     def checkType(self, typename, parameterName=None):
-        return None
+        return True
 
-    def toConvert(self, rule):
-        return None
 
     def parseFrom(self, filename):
         pass
@@ -80,10 +79,10 @@ class LatticeFile(object):
             print('Unrecognized element name {} when getting root type'.format(elename))
             raise KeyError
         cur_type = self.elementList[ind]['TYPE']
-        if self.checkType(cur_type):
-            return cur_type
-        else:
+        if cur_type in self.elementNameDict:
             return self.getElementRootType(cur_type)
+        else:
+            return cur_type
 
 
     def getElementProperties(self, elename, keyname=None, partial_key=''):
@@ -194,11 +193,15 @@ class LatticeFile(object):
 
 
     def plotBeamline(self, plt_axis, colors=('DarkOrchid', 'Maroon', 'DeepSkyBlue', 'ForestGreen'),
-                     heights=(1.2, 0.8, 0.5, 0.4), s_start=0, other_component = None, other_height=0.2):
+                     heights=(1.2, 0.8, 0.5, 0.5), s_start=0, other_components = None):
         '''
         :param plt_axis: matplotlib axis variable
         :param beamline_name: name of beamline to be plotted.
-        :param colors: The color for LINAC, dipole, Quad and multipoles
+        :param colors: The color for shapes that represent cavity, dipole, Quad and solenoid
+        :param heights: The height for shapes that represent cavity, dipole, Quad and solenoid
+        :param s_start: offset of the starting point, for display only
+        :param other_components: Dictionary for other components to plot.
+        Format:{components:{'real_length':True, 'type':'on_axis', 'height':0.2, 'color':'b'}}
         :return:
         '''
         if self.elementPosInUseLine is None:
@@ -214,7 +217,7 @@ class LatticeFile(object):
         plt_axis.set_yticks([])
         # plt_axis.xaxis.set_ticks_position('none')
         plt_axis.axhline(0, color='black')
-
+        other_components = {k.upper(): v for k, v in other_components.items()}
         for i in range(len(bl_list)):
             start = bl_pos[i] + s_start
             ele_name = bl_list[i]
@@ -253,11 +256,23 @@ class LatticeFile(object):
                     plt_axis.add_patch(
                         Rectangle((start, -heights[3] / 2.0), tempdict['L'], heights[3], angle=0.0, ec=colors[3], fc='none'))
 
-                elif self.isDrift(ele, lasttype) is False and other_component is not None:
-                    for i in range(len(other_component)):
-                        other_component[i]=other_component[i].upper()
-                    if lasttype in other_component:
-                        plt_axis.axvline(start+l_ele/2.0, ymin=0.5-other_height/4.0, ymax=0.5+other_height/4.0)
+            elif not self.isDrift(ele, lasttype) and lasttype in other_components:
+                p = other_components[lasttype]
+
+                if p.get('real_length', False):
+                    pass
+                else:
+                    if p.get('type', 'on_axis') == 'on_axis':
+                        h = p.get('height', 0.4)
+                        c = p.get('color', 'y')
+                        plt_axis.axvline(start + l_ele / 2.0, ymin=0.5 - h / 4.0, ymax=0.5 + h / 4.0, color=c)
+                    else:
+                        h = p.get('height', 0.3)
+                        c = p.get('color', 'k')
+                        plt_axis.axvline(start + l_ele / 2.0, ymin=1.0-h/2, ymax=1.0, color=c)
+                        plt_axis.axvline(start + l_ele / 2.0, ymin=0 / 2, ymax=h/2, color=c)
+
+
 
 
 

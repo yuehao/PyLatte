@@ -94,7 +94,7 @@ class FlameLatticeFile(LatticeFile):
                  'ref_IonQ', 'ref_IonW', 'ref_IonZ', 'ref_phis', 'ref_SampleIonK',
                  'beta', 'bg', 'gamma', 'IonEk', 'IonEs','IonQ', 'IonW','IonZ', 'phis',
                  'SampleIonK', 'moment0','moment0_rms', 'moment0_env', 'moment1']
-        self.result_ref=np.zeros((len(self.flame_result), 8))
+        self.result_ref=np.zeros((len(self.flame_result), 10))
         self.result_moments = np.zeros((len(self.flame_result), 14))
         for ind in range(len(self.flame_result)):
             itm=self.flame_result[ind]
@@ -108,6 +108,9 @@ class FlameLatticeFile(LatticeFile):
             self.result_ref[ind, 5] = itm[1].ref_IonEk
             self.result_ref[ind, 6] = itm[1].ref_phis
             self.result_ref[ind, 7] = itm[1].ref_SampleIonK
+            self.result_ref[ind, 8] = itm[1].ref_IonQ
+            self.result_ref[ind, 9] = itm[1].ref_IonZ
+
 
             self.result_moments[ind, 0] = ind_ele
             self.result_moments[ind, 1] = itm[1].pos
