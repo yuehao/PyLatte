@@ -5,15 +5,16 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import numpy as np
+import copy
 from flame import Machine
 from .fileIO import LatticeFile
 
 class FlameLatticeFile(LatticeFile):
     element_type=['SOURCE','DRIFT','SBEND','QUADRUPOLE','SOLENOID','RFCAVITY','STRIPPER','EDIPOLE','EQUAD', 'BPM' ,'MARKER','GENERIC']
-    def __init__(self, filename='', read_from=''):
+    def __init__(self, read_from=''):
         LatticeFile.__init__(self)
-        self.filename=filename
         self.machine = None
+        self.linename=None
         if read_from != '':
             self.parseFrom(read_from)
 
@@ -50,13 +51,37 @@ class FlameLatticeFile(LatticeFile):
         with open(lattice_file_name, 'r') as f:
             self.machine=Machine(f)
         lattice_dict=self.machine.conf()
+        self.lattice = copy.deepcopy(lattice_dict['elements'])
+        self.linename = lattice_dict['name']
+        ['AMU',
+         'Eng_Data_Dir',
+         'HdipoleFitMode',
+         'IonChargeStates',
+         'IonEk',
+         'IonEs',
+         'IonW',
+         'IonZ',
+         'MpoleLevel',
+         'NCharge',
+
+         'Stripper_IonChargeStates',
+         'Stripper_NCharge',
+
+         'sim_type']
+
+        self.AMU = lattice_dict['AMU']
+        self.Eng_Data_Dir = lattice_dict['Eng_Data_Dir']
+        self.HdipoleFitMode = float(lattice_dict.get("HdipoleFitMode", 1.0))
+        self.IonChargeStates = lattice_dict['IonChargeStates']
         self.IonEk = lattice_dict['IonEk']
         self.IonEs = lattice_dict['IonEs']
-        self.IonChargeStates = lattice_dict['IonChargeStates']
-        self.lattice = lattice_dict['elements']
-        self.HdipoleFitMode=float(lattice_dict.get("HdipoleFitMode",1.0))
-        self.MpoleLevel=float(lattice_dict.get("MpoleLevel",2.0))
+        self.IonW = lattice_dict['IonW']
+        self.IonZ = lattice_dict['IonZ']
+        self.MpoleLevel = float(lattice_dict.get("MpoleLevel", 2.0))
         self.NCharge=lattice_dict['NCharge']
+        self.Stripper_IonChargeStates = lattice_dict['Stripper_IonChargeStates']
+        self.Stripper_NCharge=lattice_dict['Stripper_NCharge']
+        self.sim_type = lattice_dict['sim_type']
 
         n_charge_state=len(self.IonChargeStates)
         self.BaryCenter=[]
@@ -70,8 +95,8 @@ class FlameLatticeFile(LatticeFile):
 
         for ele in self.lattice:
             self.addElement(ele['name'],ele['type'], **ele)
-            self.appendToBeamline('MAIN_LINE', ele['name'].upper())
-            self.setUseLine('MAIN_LINE')
+            self.appendToBeamline(self.linename, ele['name'].upper())
+            self.setUseLine(self.linename)
 
     def checkType(self, typename, parameterName=None):
         #Should be checked by the flame parser
@@ -117,7 +142,13 @@ class FlameLatticeFile(LatticeFile):
             self.result_moments[ind, 2:8] = itm[1].moment0_env[0:6]
             self.result_moments[ind, 8:] = itm[1].moment0_rms[0:6]
 
-            
+    def _output(self, f):
+        f.write()
+
+
+    def write(self, out_file_name):
+        with open(out_file_name, 'w') as f:
+            self._output(f)
             
             
             
