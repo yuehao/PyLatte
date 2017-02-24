@@ -290,17 +290,47 @@ class elegantLatticeFile(LatticeFile):
                 return True
             if (parameterName.upper() in elegantLatticeFile.elegantParameterNames[typename.upper()]):
                 return True
+        else:
+            if typename.upper() in self.elementNameDict:
+                self.checkType(self.getElementRootType(typename.upper()),parameterName)
         return False
 
+    def isDrift(self, ele, parent_type=None):
+        if 'DRIF' in ele['TYPE'] or 'DRIF' in parent_type:
+            return {'L':ele['L']}
+        else:
+            return False
 
-    def plotBeamline(self, plt_axis, beamline_name, colors=('DarkOrchid', 'Maroon', 'DeepSkyBlue', 'ForestGreen'),
+    def isDipole(self, ele, parent_type=None):
+        if 'BEND' in ele['TYPE'] or 'BEND' in parent_type:
+            return {'L': ele['L'], 'ANGLE':ele['ANGLE'], 'K1':ele.get('K1',0.0)}
+        else:
+            return False
+
+    def isQuadrupole(self, ele, parent_type=None):
+        if 'QUAD' in ele['TYPE'] or 'QUAD' in parent_type:
+            return {'L': ele['L'], 'K1':ele['K1']}
+        else:
+            return False
+    def isSolenoid(self,ele, parent_type=None):
+        if 'SOLE' in ele['TYPE'] or 'SOLE' in parent_type:
+            return {'L': ele['L'], 'B':ele['B']}
+        else:
+            return False
+    def isCavity(self,ele, parent_type=None):
+        if 'RFC' in ele['TYPE'] or 'RFC' in parent_type:
+            return {'L': ele['L']}
+        else:
+            return False
+
+    '''def plotBeamline(self, plt_axis, beamline_name, colors=('DarkOrchid', 'Maroon', 'DeepSkyBlue', 'ForestGreen'),
                      heights=(0.7, 1, 0.8, 0.4), s_start=0):
-        '''
+
         :param plt_axis: matplotlib axis variable
         :param beamline_name: name of beamline to be plotted.
         :param colors: The color for LINAC, dipole, Quad and multipoles
         :return:
-        '''
+
         self.setUseLine()
         bl_pos, bl_list = self.elementPosInUseLine, self.useLineList
         print(beamline_name, len(bl_pos), len(bl_list))
@@ -348,7 +378,7 @@ class elegantLatticeFile(LatticeFile):
                 elif 'DRIF' not in lasttype:
                     plt_axis.add_patch(
                         Rectangle((start, -heights[3] / 2.0), l_ele, heights[3], angle=0.0, ec=colors[3], fc='none'))
-
+'''
     def parseFrom(self, inputfile):
 
         # i=0
