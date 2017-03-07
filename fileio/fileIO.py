@@ -19,8 +19,10 @@ class LatticeFile(object):
 
     def checkType(self, typename, parameterName=None):
         return True
-
-
+    def toLatte(self, rule):
+        pass
+    def fromLatte(self, rule):
+        pass
     def parseFrom(self, filename):
         pass
 

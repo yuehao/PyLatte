@@ -2,7 +2,7 @@
 // Created by Yue Hao on 8/25/16.
 //
 
-#include "../tpsa.h"
+#include "../src/tpsa.h"
 #include "omp.h"
 #include <iostream>
 

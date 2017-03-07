@@ -113,7 +113,7 @@ class Drift(Element):
 
 
 
-class Mpole(Element):
+class Multipole(Element):
 
     propertyNames = copy.deepcopy(Element.propertyNames)
     propertyNames.update([
@@ -296,12 +296,12 @@ class Mpole(Element):
 '''
 
 
-class Dipole(Mpole):
-    propertyNames = copy.deepcopy(Mpole.propertyNames)
+class Dipole(Multipole):
+    propertyNames = copy.deepcopy(Multipole.propertyNames)
     propertyNames.update(['REF_ENERGY', 'EXACT_METHOD'])
 
     def __init__(self, name, **param):  # set type, defaults
-        Mpole.__init__(self, name, DESIGN_ORDER=0)
+        Multipole.__init__(self, name, DESIGN_ORDER=0)
         self.properties['E1'] = 0
         self.properties['E2'] = 0
         self.setP(**param)
@@ -319,14 +319,14 @@ class Dipole(Mpole):
         return temp
 
 
-class Quadrupole(Mpole):
-    propertyNames = copy.deepcopy(Mpole.propertyNames)
+class Quadrupole(Multipole):
+    propertyNames = copy.deepcopy(Multipole.propertyNames)
 
     # propertyNames.update(['L_ANGLE', 'R_ANGLE'])
 
 
     def __init__(self, name, **param):  # set type, defaults
-        Mpole.__init__(self, name, DESIGN_ORDER=1)
+        Multipole.__init__(self, name, DESIGN_ORDER=1)
         self.properties['K1'] = 0
         self.properties['BN'] = [0.0, 0.0]
         # self.properties['R_ANGLE']=0
@@ -461,22 +461,22 @@ class Quadrupole(Mpole):
             Quadrupole.pass_y_rot(queue, (num_p,), None, coor_buf, np.float(angle / 2.0), num_p, dim)
 '''
 
-class Sextrupole(Mpole):
-    propertyNames = copy.deepcopy(Mpole.propertyNames)
+class Sextrupole(Multipole):
+    propertyNames = copy.deepcopy(Multipole.propertyNames)
 
     def __init__(self, name, **param):  # set type, defaults
-        Mpole.__init__(self, name, DESIGN_ORDER=2)
+        Multipole.__init__(self, name, DESIGN_ORDER=2)
         self.properties['K2'] = 0
         self.properties['BN'] = [0.0, 0.0, 0.0]
 
         self.setP(**param)
 
 
-class Octupole(Mpole):
-    propertyNames = copy.deepcopy(Mpole.propertyNames)
+class Octupole(Multipole):
+    propertyNames = copy.deepcopy(Multipole.propertyNames)
 
     def __init__(self, name, **param):  # set type, defaults
-        Mpole.__init__(self, name, DESIGN_ORDER=3)
+        Multipole.__init__(self, name, DESIGN_ORDER=3)
         self.properties['K3'] = 0
         self.properties['BN'] = [0.0, 0.0, 0.0, 0.0]
 
@@ -524,7 +524,7 @@ class Center(Element):
         self.setP(**param)
 
 
-class MALIGN(Element):
+class Malign(Element):
     propertyNames = copy.deepcopy(Element.propertyNames)
     propertyNames.update([
         'DX', 'DPX', 'DY', 'DPY', 'DEOE', 'DCT'])
@@ -603,5 +603,13 @@ class Matrix(Element):
         if name[0] == 'R' and len(name) == 3 and int(name[1]) <= self.dimension and int(name[2]) <= self.dimension:
             self.vector[int(name[1]) - 1, int(name[2]) - 1] = value
 
+class Solenoid(Element):
+        propertyNames = copy.deepcopy(Element.propertyNames)
+        propertyNames.update([
+            'B', 'KS'])
 
-
+        def __init__(self, name, **param):  # set type, defaults
+            Element.__init__(self, name, self.__class__.__name__)
+            self.properties['B'] = 0.0
+            self.properties['KS'] = 0.0
+            self.setP(**param)
