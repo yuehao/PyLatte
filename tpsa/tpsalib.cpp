@@ -1,4 +1,4 @@
-/*
+*
  *  ctpsa.cpp
  *  ERLtrac
  *
@@ -44,8 +44,8 @@ unsigned long factorial(const int & n) {
             return 39916800;
         case 12:
             return 479001600;
-        
-        
+
+
         default:
             return n*factorial(n-1);
     }
@@ -93,11 +93,11 @@ unsigned long doublefactorial(const int& n){
             return 34459425;
         case 18:
             return 185794560;
-        
+
         default:
             return n*doublefactorial(n-2);
     }
-    
+
 }
 unsigned long binomial(const int& n, const int& m) {
     if (n<=0 || m>n || m<0) {
@@ -113,11 +113,11 @@ unsigned long binomial(const int& n, const int& m) {
             return (unsigned long)n;
         case 2:
             return (unsigned long)n*(n-1)/2;
-            
+
         case 3:
             return (unsigned long)n*(n-1)*(n-2)/6;
-            
-        
+
+
         default:
             break;
     }
@@ -192,9 +192,9 @@ CTPS::CTPS(){
     //terms=(unsigned long)dim+1;
     //map.reserve(binomial(dim+CTPS::Maximum_TPS_Degree, dim));
     this->assign(0.0);
-    
-    
-    
+
+
+
 }
 CTPS::CTPS(const double& a){
     //int dim=TPS_Dim;
@@ -202,8 +202,8 @@ CTPS::CTPS(const double& a){
     //terms=(unsigned long)dim+1;
     //map.reserve(binomial(dim+CTPS::Maximum_TPS_Degree, dim));
     this->assign(a);
-    
-    
+
+
 }
 
 CTPS::CTPS(const CTPS &M){
@@ -212,8 +212,8 @@ CTPS::CTPS(const CTPS &M){
     this->terms=M.terms;
     //map.reserve(binomial(dim+CTPS::Maximum_TPS_Degree, dim));
     this->map=M.map;
-    
-    
+
+
 }
 //CTPS::operator double() const{
 //  return this->map[0];
@@ -222,7 +222,7 @@ unsigned long CTPS::findindex(const vector<int>& indexmap){
     int dim=TPS_Dim;
     vector<int> sum((unsigned long)dim+1);
     sum[0]=indexmap[0];
-    
+
     for (int i=1; i<=dim; i++) {
         sum[i]=sum[i-1]-indexmap[i];
     }
@@ -248,7 +248,7 @@ void CTPS::redegree(const int& degree){
 
 
 void CTPS::assign(const double& a, const int& n_var){
-    
+
     if (n_var<=this->TPS_Dim && n_var>0) {
         this->degree=1;
         this->terms=(unsigned long)CTPS::TPS_Dim+1;
@@ -323,7 +323,7 @@ void CTPS::print(const int &max_print_degree) const {
     int just_endl=0;
     std::cout<<"Order 0:"<<endl;
     for (int i=0;i<this->terms;i++){
-        
+
         vector<int> temp=this->polymap.getindexmap(i);
         if (temp[0] > current_order){
             if (just_endl==0) std::cout<<endl;
@@ -340,11 +340,11 @@ void CTPS::print(const int &max_print_degree) const {
         std::cout.width(10);
         std::cout<<std::left<<this->map[i];
         acc_return++;
-        
+
         if (acc_return % 3 == 0) {std::cout << endl; just_endl=1;}
         else {std::cout << '\t'; just_endl=0;}
-           
-        
+
+
     }
     if (just_endl==0) std::cout<<endl;
 }
@@ -359,7 +359,7 @@ CTPS& CTPS::operator=(const CTPS &M){
     return *this;
 }
 CTPS& CTPS::operator+=(const CTPS &M){
-    
+
     if (this->degree<M.degree) {
         this->redegree(M.degree);
     }
@@ -368,10 +368,10 @@ CTPS& CTPS::operator+=(const CTPS &M){
         this->map[i]+=M.map[i];
     }
     return *this;
-    
+
 }
 CTPS& CTPS::operator-=(const CTPS &M){
-    
+
     if (this->degree<M.degree) {
         this->redegree(M.degree);
     }
@@ -382,16 +382,16 @@ CTPS& CTPS::operator-=(const CTPS &M){
     return *this;
 }
 CTPS& CTPS::operator*=(const CTPS &M){
-    
+
     if (M.get_degree()==0){
-        
+
         //#pragma omp parallel for schedule(static,4096)
         for (int i=0; i<this->terms; i++){
             this->map[i]*=M.map[0];
         }
         return *this;
     }
-    
+
     CTPS temp(*this);
     this->map.clear();
     (*this).redegree(min(CTPS::Maximum_TPS_Degree, this->degree+M.degree));
@@ -421,7 +421,7 @@ CTPS& CTPS::operator*=(const CTPS &M){
 }
 
 CTPS& CTPS::operator/=(const CTPS &M){
-    
+
     if (M.cst()==0) {
         this->ErrMsg(DivZero, "operator /= (CTPS)");
         exit(0);
@@ -434,8 +434,8 @@ CTPS& CTPS::operator/=(const CTPS &M){
         return *this;
     }
     return ((*this)*=inv(M));
-    
-    
+
+
 }
 
 
@@ -456,11 +456,11 @@ CTPS inv(const CTPS & M){
             temp2=temp2*temp;
         }
         sum+=(temp2*index);
-        
+
     }
     sum+=(1/a0);
     return sum;
-    
+
 }
 CTPS exp(const CTPS & M){
     CTPS temp(M), sum(0.0), temp2;
@@ -475,7 +475,7 @@ CTPS exp(const CTPS & M){
             temp2=temp2*temp;
         }
         sum+=(temp2*index);
-        
+
     }
     sum+=1.0;
     sum*=exp(a0);
@@ -499,7 +499,7 @@ CTPS log(const CTPS & M){
             temp2=temp2*temp;
         }
         sum+=(temp2*index);
-        
+
     }
     sum+=log(a0);
     return sum;
@@ -514,7 +514,7 @@ CTPS sqrt(const CTPS & M){
     temp=temp-a0;
     for (int i=1; i<=CTPS::Maximum_TPS_Degree; i++) {
         double index=pow(-1.0, i+1)*doublefactorial(2*i-3)/pow(a0, i-0.5)/doublefactorial(2*i);
-        
+
         if (i==1) {
             temp2=temp;
             index=1/2.0/sqrt(a0);
@@ -523,7 +523,7 @@ CTPS sqrt(const CTPS & M){
             temp2=temp2*temp;
         }
         sum+=(temp2*index);
-        
+
     }
     sum+=sqrt(a0);
     return sum;
@@ -567,7 +567,7 @@ CTPS sin(const CTPS & M){
         else {
             index=sin(a0)*pow(-1.0, i/2)/factorial(i);
         }
-        
+
         if (i==1) {
             temp2=temp;
         }
@@ -575,7 +575,7 @@ CTPS sin(const CTPS & M){
             temp2=temp2*temp;
         }
         sum+=(temp2*index);
-        
+
     }
     sum+=sin(a0);
     return sum;
@@ -592,7 +592,7 @@ CTPS cos(const CTPS & M){
         else {
             index=cos(a0)*pow(-1.0, i/2)/factorial(i);
         }
-        
+
         if (i==1) {
             temp2=temp;
         }
@@ -600,7 +600,7 @@ CTPS cos(const CTPS & M){
             temp2=temp2*temp;
         }
         sum+=(temp2*index);
-        
+
     }
     sum+=cos(a0);
     return sum;
@@ -620,7 +620,7 @@ CTPS sinh(const CTPS & M){
         else {
             index=sinh(a0)/factorial(i);
         }
-        
+
         if (i==1) {
             temp2=temp;
         }
@@ -628,7 +628,7 @@ CTPS sinh(const CTPS & M){
             temp2=temp2*temp;
         }
         sum+=(temp2*index);
-        
+
     }
     sum+=sinh(a0);
     return sum;
@@ -645,7 +645,7 @@ CTPS cosh(const CTPS & M){
         else {
             index=cosh(a0)/factorial(i);
         }
-        
+
         if (i==1) {
             temp2=temp;
         }
@@ -653,14 +653,14 @@ CTPS cosh(const CTPS & M){
             temp2=temp2*temp;
         }
         sum+=(temp2*index);
-        
+
     }
     sum+=cosh(a0);
     return sum;
 }
 std::ostream& operator<<(std::ostream& output, const CTPS& A){
     output.precision(8);
-    
+
     for (int i=0;i<A.terms;i++) {
         output.width(16);
         output <<left<<A.map[i];
