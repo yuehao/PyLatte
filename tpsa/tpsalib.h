@@ -76,7 +76,7 @@ public:
     
     double evaluate(const std::vector<double>& inivalue) const;
     
-    void print(const int & max_print_degree) const;
+    void print_by_order(const int & max_print_degree) const;
     
     //operator double() const;
     CTPS& operator=(const CTPS &);
@@ -84,6 +84,11 @@ public:
     CTPS& operator-=(const CTPS &);
     CTPS& operator*=(const CTPS &);
     CTPS& operator/=(const CTPS &);
+
+    CTPS& add_to(const CTPS &M) {return (*this)+=M};
+    CTPS& minus_to(const CTPS &M) {return (*this)-=M};
+    CTPS& time_to(const CTPS &M) {return (*this)*=M};
+    CTPS& divide_to(const CTPS &M) {return (*this)/=M};
     
     inline const double cst() const {return map[0];}
     
