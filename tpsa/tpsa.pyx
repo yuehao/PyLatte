@@ -3,8 +3,8 @@ from libcpp cimport bool
 cdef extern from "tpsalib.h":
     cdef cppclass CTPS:
         CTPS() except +
-        CTPS(const double & ) except +
-        CTPS(const CTPS &) except +
+        CTPS(const double&) except +
+        CTPS(const CTPS&) except +
 
         @staticmethod
         void Initialize(const int&, const int&)
@@ -31,53 +31,53 @@ cdef extern from "tpsalib.h":
 
         const double cst() const
 
-    CTPS inv(const CTPS &)
-    CTPS exp(const CTPS &)
-    CTPS log(const CTPS &)
-    CTPS sqrt(const CTPS &)
-    CTPS pow(const CTPS &, const double &)
-    CTPS sin(const CTPS &)
-    CTPS cos(const CTPS &)
-    CTPS tan(const CTPS &)
-    CTPS sinh(const CTPS &)
-    CTPS cosh(const CTPS &)
+        CTPS inv(const CTPS &)
+        CTPS exp(const CTPS &)
+        CTPS log(const CTPS &)
+        CTPS sqrt(const CTPS &)
+        CTPS pow(const CTPS &, const double &)
+        CTPS sin(const CTPS &)
+        CTPS cos(const CTPS &)
+        CTPS tan(const CTPS &)
+        CTPS sinh(const CTPS &)
+        CTPS cosh(const CTPS &)
     
-    const CTPS operator+(const CTPS & M)
-    const CTPS operator-(const CTPS & M)
+        const CTPS operator+(const CTPS & M)
+        const CTPS operator-(const CTPS & M)
 
-    const CTPS operator+(const CTPS & M, const CTPS & N)
-    const CTPS operator-(const CTPS & M, const CTPS & N)
+        const CTPS operator+(const CTPS & M, const CTPS & N)
+        const CTPS operator-(const CTPS & M, const CTPS & N)
 
-    const CTPS operator*(const CTPS & M, const CTPS & N)
-    const CTPS operator/(const CTPS & M, const CTPS & N)
+        const CTPS operator*(const CTPS & M, const CTPS & N)
+        const CTPS operator/(const CTPS & M, const CTPS & N)
 
-    const bool operator==(const CTPS & M, const CTPS & N)
-    const bool operator<=(const CTPS & M, const CTPS & N)
-    const bool operator>=(const CTPS & M, const CTPS & N)
-    const bool operator!=(const CTPS & M, const CTPS & N)
-    const bool operator<(const CTPS & M, const CTPS & N)
-    const bool operator>(const CTPS & M, const CTPS & N)
+        const bool operator==(const CTPS & M, const CTPS & N)
+        const bool operator<=(const CTPS & M, const CTPS & N)
+        const bool operator>=(const CTPS & M, const CTPS & N)
+        const bool operator!=(const CTPS & M, const CTPS & N)
+        const bool operator<(const CTPS & M, const CTPS & N)
+        const bool operator>(const CTPS & M, const CTPS & N)
 
 cdef class PyTPSA:
-    cdef CTPS ctps
+    cdef CTPS *_thisptr
     def __cinit__(self, a=None):
         if a is None:
-            self.ctps = new CTPS()
+            self._thisptr = new CTPS()
         elif isinstance(a,float) or isinstance(a,int):
-            self.ctps = new CTPS(1.0 * a)
+            self._thisptr = new CTPS(1.0 * a)
         elif isinstance(a, PyTPSA):
-            self.ctps = new CTPS(a.ctps)
+            self._thisptr = new CTPS(a._thisptr[0])
 
     @classmethod
     def initialize(cls, int dim, int order):
-        cls.ctps.Initialize(dim, order)
+        CTPS.Initialize(dim, order)
 
     def get_dim(self):
-        self.ctps.get_dim()
+        self._thisptr.get_dim()
     def get_degree(self):
-        self.ctps.get_degree()
+        self._thisptr.get_degree()
     def get_term(self):
-        self.ctps.get_terms()
+        self._thisptr.get_terms()
 
 
 
