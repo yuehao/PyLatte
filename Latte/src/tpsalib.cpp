@@ -269,7 +269,7 @@ void CTPS::assign(const double& a){
     this->map[0]=a;
 }
 
-const double CTPS::element(const int& ind) const{
+const double CTPS::element(const unsigned long & ind) const{
     if (ind<0 || ind >=terms) {
         ErrMsg(OverFlow, "element (int)");
         exit(0);
@@ -277,26 +277,10 @@ const double CTPS::element(const int& ind) const{
     return map[ind];
 }
 
-const double CTPS::element(vector<int> ind) const{
-    int dim=TPS_Dim;
-    if (ind.size()!=dim+1) {
-        ErrMsg(OverFlow, "element(vector<int>)");
-        exit(0);
-    }
-    for (int i=1; i<=dim; i++) {
-        ind[i]=ind[i-1]-ind[i];
-    }
-    if (ind[dim]!=0 || ind[0]>this->degree) {
-        ErrMsg(OverFlow, "element(vector<int>)");
-        exit(0);
-    }
-    int result=0;
-    for (int i=dim; i>0; i--) {
-        if (ind[dim-i]==0) {
-            break;
-        }
-        result+=binomial(ind[dim-i]-1+i, i);
-    }
+const double CTPS::element(const vector<int> ind&) const{
+
+    unsigned long result=this->findpower(ind);
+    
     return map[result];
 }
 

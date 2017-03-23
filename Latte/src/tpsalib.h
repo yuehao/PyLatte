@@ -71,8 +71,8 @@ public:
     inline const unsigned long get_degree() const {return degree;}
     inline const unsigned long get_terms() const {return terms;}
     
-    const double element(const int& ind) const;
-    const double element(std::vector<int> indmap) const;
+    const double element(const unsigned long & ind) const;
+    const double element(const std::vector<int> & indmap) const;
     
     double evaluate(const std::vector<double>& inivalue) const;
     
@@ -85,10 +85,10 @@ public:
     CTPS& operator*=(const CTPS &);
     CTPS& operator/=(const CTPS &);
 
-    CTPS& add_to(const CTPS &M) {return (*this)+=M};
-    CTPS& minus_to(const CTPS &M) {return (*this)-=M};
-    CTPS& time_to(const CTPS &M) {return (*this)*=M};
-    CTPS& divide_to(const CTPS &M) {return (*this)/=M};
+    CTPS& add_to(const CTPS &M) {return (*this)+=M;}
+    CTPS& minus_to(const CTPS &M) {return (*this)-=M;}
+    CTPS& time_to(const CTPS &M) {return (*this)*=M;}
+    CTPS& divide_to(const CTPS &M) {return (*this)/=M;}
     
     inline const double cst() const {return map[0];}
     
