@@ -10,16 +10,18 @@ import copy
 import re
 import subprocess as subp
 import shlex
-import cStringIO as io
-import SDDSIO.sdds as sdds
+import io
+import sdds
 import os
 
 
 class elegantLexer:
-    literals = "=,-:&()"
+    literals = "=,-*:&()"
     # reserved={r'[Ll][Ii][Nn][Ee]':'KWLINE'}
     reserved = {'LINE': 'KWLINE', 'USE': 'KWUSE', 'RETURN': 'KWRETURN'}
-    tokens = ['NUMBER', 'STRING', 'RET'] + list(reserved.values())
+    tokens = [ 'NUMBER', 'STRING', 'RET'] + list(reserved.values())
+
+
 
     def t_NUMBER(self, t):
         r'([0-9]*\.?[0-9]+|[0-9]+\.[0-9]*)(([eE][-+]?[0-9]+)?)'
@@ -29,8 +31,8 @@ class elegantLexer:
     t_ignore = ' \t'
 
     def t_STRING(self, t):
-        r'-?[A-Za-z][A-Za-z0-9_\.]*'
-        t.type = elegantLexer.reserved.get(t.value, 'STRING')
+        r'[-%]?[A-Za-z][A-Za-z0-9_\.]*'
+        t.type = elegantLexer.reserved.get(t.value.upper(), 'STRING')
         return t
 
     def t_QUOTE(self, t):
@@ -38,7 +40,7 @@ class elegantLexer:
         pass
 
     def t_COMMENT(self, t):
-        r'\#.*'
+        r'(\#|!).*'
         pass
 
     def t_contline(self, t):
@@ -46,7 +48,6 @@ class elegantLexer:
         # print('foundit')
         t.lexer.lineno += 1
         self.continuetor = 1
-        pass
 
     def t_RET(self, t):
         r'\n+'
@@ -116,11 +117,19 @@ class elegantParser:
 
     def p_bline(self, p):
         '''bline : STRING
-                | bline ',' STRING '''
+                | bline ',' STRING
+                | bline ',' NUMBER '*' STRING
+                | bline ',' '(' bline ')'
+                '''
         if len(p) == 2:
             self.listtemp.append(p[1])
         elif len(p) == 4:
             self.listtemp.append(p[3])
+        elif len(p) == 6 and p[3]=='(':
+            pass
+        elif len(p) == 6:
+            for _ in range(int(p[3])):
+                self.listtemp.append(p[5])
 
     def p_properties(self, p):
         '''properties :
@@ -156,19 +165,22 @@ class elegantLatticeFile(LatticeFile):
     elegantTypesAsymmetry=[]
     typeDict={}
     propertyDict={}
+    elegant_dir=''
+    sdds_dir=''
 
-    def __init__(self, filename='', readfrom=''):
+    def __init__(self, filename='', readfrom='', elegant_dir_input='', sdds_dir_input=''):
         LatticeFile.__init__(self)
+        self.lattice_format='Elegant'
         self.filename=filename
         if len(elegantLatticeFile.elegantTypes)==0:
-            self.resetIODict()
+            self.resetIODict(elegant_dir_input, sdds_dir_input)
         self.useline= ''
         if readfrom!='':
             self.parseFrom(readfrom)
         self.codeName='ELEGENT'.upper()
 
-    def resetIODict(self):
-
+    def resetIODict(self, elegant_dir_input='', sdds_dir_input=''):
+        #status,_=subp.
         printdict = elegantCommandFile('tempdict.ele')
         printdict.addCommand('print_dictionary', note='', filename='tempdict.dat', SDDS_form=1)
         printdict.write()
@@ -180,9 +192,11 @@ class elegantLatticeFile(LatticeFile):
         p1 = subp.Popen(shlex.split(cmdstr), stdout=subp.PIPE)
         out = p1.communicate()[0]
 
-        outfile = io.StringIO(out)
+        outfile = io.BytesIO(out)
+
         typeind = 1
-        for line in outfile:
+        for line_b in outfile:
+            line=line_b.decode()
             if 'ElementType' in line:
                 elenametemp = line.split()[-1]
                 elegantLatticeFile.elegantTypes[elenametemp] = None
@@ -193,9 +207,10 @@ class elegantLatticeFile(LatticeFile):
                 out2 = p2.communicate()[0]
 
                 typeind += 1
-                outfile2 = io.StringIO(out2)
+                outfile2 = io.BytesIO(out2)
                 flag = 0
-                for subline in outfile2:
+                for subline_byte in outfile2:
+                    subline = subline_byte.decode()
                     if flag == 1:
                         temp = subline.split()
                         if temp[0] in ['E1', 'H1', 'END1_FOCUS']:  # These parameter break the symmetry
@@ -295,31 +310,57 @@ class elegantLatticeFile(LatticeFile):
                 self.checkType(self.getElementRootType(typename.upper()),parameterName)
         return False
 
-    def isDrift(self, ele, parent_type=None):
-        if 'DRIF' in ele['TYPE'] or 'DRIF' in parent_type:
-            return {'L':ele['L']}
+
+
+    def isDrift(self, ele_name):
+        parent_type = self.getParentElements(ele_name)[-1]
+        if 'DRIF' in parent_type:
+            temp=self.getElementProperties(ele_name)
+            return temp
         else:
             return False
 
-    def isDipole(self, ele, parent_type=None):
-        if 'BEND' in ele['TYPE'] or 'BEND' in parent_type:
-            return {'L': ele['L'], 'ANGLE':ele['ANGLE'], 'K1':ele.get('K1',0.0)}
+    def isDipole(self, ele_name):
+        parent_type = self.getParentElements(ele_name)[-1]
+        if 'BEND' in parent_type:
+            temp=self.getElementProperties(ele_name)
+            if 'K1' not in temp:
+                temp['K1']=0
+            return temp
         else:
             return False
 
-    def isQuadrupole(self, ele, parent_type=None):
-        if 'QUAD' in ele['TYPE'] or 'QUAD' in parent_type:
-            return {'L': ele['L'], 'K1':ele['K1']}
+    def isQuadrupole(self, ele_name):
+        parent_type = self.getParentElements(ele_name)[-1]
+        if 'QUAD' in parent_type:
+            temp=self.getElementProperties(ele_name)
+            if 'K1' not in temp:
+                temp['K1']=0
+            return temp
         else:
             return False
-    def isSolenoid(self,ele, parent_type=None):
-        if 'SOLE' in ele['TYPE'] or 'SOLE' in parent_type:
-            return {'L': ele['L'], 'B':ele['B']}
+    def isSextrupole(self, ele_name):
+        parent_type = self.getParentElements(ele_name)[-1]
+        if 'SEXT' in parent_type:
+            temp=self.getElementProperties(ele_name)
+            if 'K2' not in temp:
+                temp['K2']=0
+            return temp
         else:
             return False
-    def isCavity(self,ele, parent_type=None):
-        if 'RFC' in ele['TYPE'] or 'RFC' in parent_type:
-            return {'L': ele['L']}
+
+    def isSolenoid(self, ele_name):
+        parent_type = self.getParentElements(ele_name)[-1]
+        if 'SOLE' in parent_type:
+            temp=self.getElementProperties(ele_name)
+            return temp
+        else:
+            return False
+    def isCavity(self, ele_name):
+        parent_type = self.getParentElements(ele_name)[-1]
+        if 'RFC' in parent_type:
+            temp=self.getElementProperties(ele_name)
+            return temp
         else:
             return False
 
@@ -386,7 +427,7 @@ class elegantLatticeFile(LatticeFile):
         for line in inputfile:
             # i+=1
             # print(i)
-
+            # print(line)
             m = elegantLexer()
             m.lexit(line)
             bufferstr = ''.join([bufferstr.upper(), line])
@@ -399,20 +440,9 @@ class elegantLatticeFile(LatticeFile):
                 for k, v in p.dicts.items():
                     if v['TYPE'] == 'BEAMLINE':
                         vline = v['SEQUENCE']
-                        for i in range(len(vline)):
-                            if self.getElementIndex(vline[i]) is None and self.getBeamlineIndex(vline[i]) is None:
-                                print('The element {} hasnot been defined yet'.format(vline[i]))
-                                exit()
-                        check = self.getBeamlineIndex(k)
-                        if check is not None:
-                            self.beamlineList[check] = {'NAME': k, 'LINE': vline}
-                            print(
-                            'Warning, the beamline {} is defined more than one time. Changes to the newest one'.format(
-                                k))
-                        else:
-                            check = len(self.beamlineList)
-                            self.beamlineList.append({'NAME': k, 'LINE': vline})
-                            self.beamlineNameDict[k] = check
+
+                        self.appendToBeamline(k, *vline)
+
                     else:
                         if self.checkType(v['TYPE']) or self.getElementIndex(v['TYPE']) is not None:
 
@@ -423,6 +453,8 @@ class elegantLatticeFile(LatticeFile):
 
         if p.useline != '':
             self.useline = p.useline
+        else:
+            self.useline = self.beamlineList[-1]['NAME']
 
     def downConvert(self, thelattice):
         '''
@@ -455,11 +487,36 @@ class elegantLatticeFile(LatticeFile):
         for lin in thelattice.beamlineName:
             self.appendToBeamline(lin, *thelattice.beamlineNameDict[lin])
 
-    def toConvert(self, rule):
+    def toPyLatte(self):
         '''
-        Convert to general lattice file from elegant lattice file:
+        Convert to PyLatte lattice from elegant lattice file:
         '''
-        pass
+        lattice=[]
+        the_line=self.beamlineList[self.beamlineNameDict[self.useline]]['LINE']
+        for elename in the_line:
+            test=self.isDrift(elename)
+            if test is not False:
+                from .. elements.drift import Drift
+                lattice.append(Drift(elename, **test))
+
+            test = self.isDipole(elename)
+            if test is not False:
+                from ..elements.dipole import Dipole
+                lattice.append(Dipole(elename, **test))
+
+            test = self.isQuadrupole(elename)
+            if test is not False:
+                from ..elements.quadrupole import Quadrupole
+                lattice.append(Quadrupole(elename, **test))
+
+            test = self.isSextrupole(elename)
+            if test is not False:
+                from ..elements.sextrupole import Sextrupole
+                lattice.append(Sextrupole(elename, **test))
+
+        return lattice
+
+
 
     def write(self, outputfilename='', mode='w'):
         if outputfilename != '':
@@ -669,28 +726,43 @@ def get_SDDS_column(SDDSfile, column_name=[], convert_to_float=True):
     return res, cnlist[get_list], cnunit[get_list, 1]
 
 
-def elegant_findtwiss(lattice, beamline_to_use=None, matched=1, initial_optics=[], alternate_element={}, closed_orbit=1, gamma=1.0e4/0.511):
+def elegant_findtwiss(lattice, beamline_to_use=None, rootname='temp', matched=1,
+                      initial_optics=[1, 0, 0, 0, 1, 0, 0, 0],
+                      alternate_element={}, closed_orbit=1, gamma0=1.0e4 / 0.511,
+                      divide_element=0,
+                      twiss_columns=['s', 'betax', 'alphax', 'psix', 'etax', 'etaxp',
+                                     'betay', 'alphay', 'psiy', 'etay', 'etayp']
+                      ):
     '''
-    :param lattice: lattice to be used
-    :param beamline_to_use: use beamline
-    :param matched: find repeat solution
-    :param initial_optics: [bx,ax,dx,dxp,by,ay,dy,dyp]
-    :param alternate_element: {NAME:name, PARAM:param, VALUE: value}
-    :param closed_orbit
+    Find twiss parameter using elegant
+    :param lattice: The elegantLatticeFile object to be used
+    :param beamline_to_use: The beamline to be used.  Default is None, then lattice.useline is used
+    :param rootname: The rootname of the output file.  Default is 'temp'.
+    :param matched: 1: seek for matched solution, 0: Use initial_optics as initial condition
+    :param initial_optics: Initial optics to start with, default is [1, 0, 0, 0, 1, 0, 0, 0]
+    :param alternate_element: No use for now
+    :param closed_orbit:  No use for now
+    :param gamma0: The reference lorentz factor of the particle
+    :param twiss_columns: The output columns of the twiss parameters, default is ['s', 'betax', 'alphax', 'psix', 'etax', 'etaxp',
+                                     'betay', 'alphay', 'psiy', 'etay', 'etayp']
+    :return: return tulip of twiss numpy array and dictionary of parameters:(twiss array, twiss parameters)
     '''
+
+
     if beamline_to_use is None:
         beamline_to_use = lattice.useline
-    lattice.write('temp.lte')
-    cmd_file=elegantCommandFile('temp.ele')
+    lattice.write('{}.lte'.format(rootname))
+    cmd_file = elegantCommandFile('{}.ele'.format(rootname))
     cmd_file.addCommand('run_setup',
-                    lattice='temp.lte',
-                    use_beamline=beamline_to_use,
-                    rootname='temp',
-                    p_central=np.sqrt(np.power(gamma,2.0)-1),
-                    centroid='%s.cen',
-                    default_order=3,
-                    concat_order = 3,
-                )
+                        lattice='{}.lte'.format(rootname),
+                        use_beamline=beamline_to_use,
+                        rootname=rootname,
+                        p_central=np.sqrt(np.power(gamma0, 2.0) - 1),
+                        centroid='%s.cen',
+                        default_order=3,
+                        concat_order=3,
+                        element_divisions=divide_element,
+                        )
     '''cmd_file.addCommand('closed_orbit',
                     output='%s.clo',
                     closed_orbit_iterations=1500,
@@ -699,33 +771,119 @@ def elegant_findtwiss(lattice, beamline_to_use=None, matched=1, initial_optics=[
 
                     )'''
     cmd_file.addCommand('twiss_output',
-                matched=1,
-                output_at_each_step=0,
-                filename='%s.twi',
-                radiation_integrals=1,
-                )
+                        matched=matched,
+                        output_at_each_step=0,
+                        filename='%s.twi',
+                        radiation_integrals=1,
+                        beta_x=initial_optics[0],
+                        alpha_x=initial_optics[1],
+                        eta_x=initial_optics[2],
+                        etap_x=initial_optics[3],
+                        beta_y=initial_optics[4],
+                        alpha_y=initial_optics[5],
+                        eta_y=initial_optics[6],
+                        etap_y=initial_optics[7],
+
+                        )
     cmd_file.addCommand('run_control')
     cmd_file.addCommand('bunched_beam')
     cmd_file.addCommand('track')
     cmd_file.write()
-    cmdstr = 'elegant temp.ele'
+    cmdstr = 'elegant {}.ele'.format(rootname)
     with open(os.devnull, "w") as f:
         subp.call(shlex.split(cmdstr), stdout=f)
 
     twifile = sdds.SDDS(0)
-    twifile.load('temp.twi')
-    twiss_list=np.array(twifile.columnData)[[1,2,3,4,5,7,8,9,10,11],0,:].astype(float)
-    ind_alphac=twifile.parameterName.index('alphac')
-    ind_alphac2 = twifile.parameterName.index('alphac2')
-    ind_I2 = twifile.parameterName.index('I2')
-    lattice_parameter={'end_optics':twiss_list[:,-1],
-                       'alphac':twifile.parameterData[ind_alphac][0],
-                       'alphac2':twifile.parameterData[ind_alphac2][0],
-                       'I2':twifile.parameterData[ind_I2][0],
-                       'length':float(twifile.columnData[0][0][-1])
-                       }
+    twifile.load('{}.twi'.format(rootname))
+    inds = []
+    for name in twiss_columns:
+        ind = twifile.columnName.index(name)
+        inds.append(ind)
+    twiss_list = np.array(twifile.columnData)[inds, 0, :].astype(float)
+    import pandas as pd
+    twiss_parameter = {}
+    for para_name, para_value in zip(twifile.parameterName, twifile.parameterData):
+        twiss_parameter[para_name] = para_value[0]
 
-    return twiss_list, lattice_parameter
+    return pd.DataFrame(data=twiss_list.transpose(), columns=twiss_columns), twiss_parameter
+
+
+def elegant_track(lattice, beamline_to_use=None, Npar=1, rootname='temp',
+                  initial_optics=[1, 0, 0, 0, 1, 0, 0, 0], emit_x=0.0, emit_nx=0.0, emit_y=0.0, emit_ny=0.0,
+                  centroid_columns=['s', 'Cx', 'Cxp', 'Cy', 'Cyp', 'Cs', 'Cdelta', 'pCentral'],
+                  sigma_columns=['s', 'Sx', 'Sxp', 'Sy', 'Syp', 'Ss', 'Sdelta', 'ex', 'ecx', 'ey', 'ecy'],
+                  gamma0=1.0e4 / 0.511):
+    '''
+
+    :param lattice: The elegantLatticeFile object to be used
+    :param beamline_to_use: The beamline to be used.  Default is None, then lattice.useline is used
+    :param Npar: Number of particles used in tracking, default is 1
+    :param rootname: rootname: The rootname of the output file.  Default is 'temp'.
+    :param initial_optics: Initial optics to start with, default is [1, 0, 0, 0, 1, 0, 0, 0]
+    :param emit_x: Initial geometric emittance of horizontal direction
+    :param emit_nx: Initial normalized emittance of horizontal direction, ignored if emit_x is given
+    :param emit_y: Initial geometric emittance of vertical direction
+    :param emit_ny: Initial normalized emittance of vertical direction, ignored if emit_y is given
+    :param centroid_columns: The output columns of centroids
+    :param sigma_columns: The output columns of sigmas
+    :param gamma0: The reference lorentz factor of the particle
+    :return: return tulip of two numpy array:(centroid_array, sigma_array)
+    '''
+    if beamline_to_use is None:
+        beamline_to_use = lattice.useline
+    lattice.write('temp.lte')
+    cmd_file = elegantCommandFile('{}.ele'.format(rootname))
+    cmd_file.addCommand('run_setup',
+                        lattice='{}.lte'.format(rootname),
+                        use_beamline=beamline_to_use,
+                        rootname=rootname,
+                        p_central=np.sqrt(np.power(gamma0, 2.0) - 1),
+                        centroid='%s.cen',
+                        sigma='%s.sig',
+                        default_order=3,
+                        concat_order=3,
+                        )
+
+    cmd_file.addCommand('run_control')
+    cmd_file.addCommand('bunched_beam',
+                        n_particles_per_bunch=Npar,
+                        emit_x=emit_x,
+                        emit_nx=emit_nx,
+                        beta_x=initial_optics[0],
+                        alpha_x=initial_optics[1],
+                        eta_x=initial_optics[2],
+                        etap_x=initial_optics[3],
+                        emit_y=emit_y,
+                        emit_ny=emit_ny,
+                        beta_y=initial_optics[4],
+                        alpha_y=initial_optics[5],
+                        eta_y=initial_optics[6],
+                        etap_y=initial_optics[7],
+                        )
+    cmd_file.addCommand('track')
+    cmd_file.write()
+    cmdstr = 'elegant {}.ele'.format(rootname)
+    with open(os.devnull, "w") as f:
+        subp.call(shlex.split(cmdstr), stdout=f)
+
+    cenfile = sdds.SDDS(0)
+    cenfile.load('{}.cen'.format(rootname))
+
+    inds = []
+    for name in centroid_columns:
+        ind = cenfile.columnName.index(name)
+        inds.append(ind)
+    centroid = np.array(cenfile.columnData)[inds, 0, :].astype(float)
+
+    sigfile = sdds.SDDS(0)
+    sigfile.load('{}.sig'.format(rootname))
+    inds = []
+    for name in sigma_columns:
+        ind = sigfile.columnName.index(name)
+        inds.append(ind)
+    sigma = np.array(sigfile.columnData)[inds, 0, :].astype(float)
+
+    return centroid, sigma
 
 
 

@@ -1,12 +1,19 @@
 import copy
 import numpy as np
+#from .. element import Element
 
 
 class LatticeFile(object):
     '''
     It can be reused by all supported external files
+    elementList: List of all defined elements
+    elementNameDict: Look up table of elements from its name {'name': index}
+    beamlineList: List of all defined beamlines
+    beamlineNameDict: Look up table of beamlines from its name
+
     '''
     def __init__(self):
+        self.lattice_format='PyLatte'
         self.elementList = []
         self.elementNameDict = {}
         self.beamlineList = []
@@ -18,7 +25,22 @@ class LatticeFile(object):
         self.useline= ''
 
     def checkType(self, typename, parameterName=None):
-        return True
+        '''
+        Check if the type is valid, should be inherit by all child for there own definition.
+        This parent will adopt the definition in .. element
+        :param typename:
+        :param parameterName:
+        :return: True if type and paramterName is allowed, otherwise False
+        '''
+        '''
+        if typename.upper() not in Element.elementTypes:
+            return False
+        else:
+            if parameterName is None:
+                return True
+            else:
+                return parameterName.upper() in Element.get_property_name(typename.upper())
+        '''
     def toLatte(self):
         pass
     def fromLatte(self):
@@ -27,6 +49,12 @@ class LatticeFile(object):
         pass
 
     def getElementIndex(self, elename):
+        '''
+        From the name to get the index in the list of elementNameDict;  Ignore the leading '-'
+
+        :param elename:
+        :return: the index in elementNameDict or None if name not found
+        '''
         elename = elename.upper()
         if elename[0] == '-':
             return self.getElementIndex(elename[1:])
@@ -37,6 +65,13 @@ class LatticeFile(object):
 
 
     def addElement(self, _name, _eletype, **params):
+        '''
+
+        :param _name: Name of the element to be added
+        :param _eletype: Type of the element to be added, either checked by checkType(_eletype) or existing element name.
+        :param params: A dict input on the parameterlist, The allowed parameter name checked by checkType(_eletype, param_name)
+        :return: None
+        '''
         roottype = ''
         #if self.checkType(_eletype) == False:
         #    if (self.getElementIndex(_eletype) is None):
@@ -82,6 +117,11 @@ class LatticeFile(object):
         return
 
     def getElementRootType(self, elename):
+        '''
+
+        :param elename: Name of the element
+        :return: The root type of the element, if the type of the element is another element.
+        '''
         elename = elename.upper()
         ind = self.getElementIndex(elename)
         if ind is None:
@@ -94,7 +134,14 @@ class LatticeFile(object):
             return cur_type
 
 
-    def getElementProperties(self, elename, keyname=None, partial_key=''):
+    def getElementProperties(self, elename, keyname=None, partial_key='', exclude_key=None):
+        '''
+        Return the element's property value based on its parameter name or partial name.
+        :param elename: The name of the element
+        :param keyname: The parameter name, if empty, all properties,filtered by the partial_key will be returned
+        :param partial_key: Only the parameter name contains partial_key will be returned.
+        :return: The parameter value, if keyname is not None, or dict of {parameterName: parameterValue} is returned
+        '''
         elename = elename.upper()
         ind = self.getElementIndex(elename)
         if ind is None:
@@ -103,13 +150,16 @@ class LatticeFile(object):
         if keyname is None:
             root_type = self.getElementRootType(elename)
             cur_type = self.elementList[ind]['TYPE']
+
             if cur_type == root_type:
                 return {k: v for k, v in self.elementList[ind].items()
                         if partial_key.upper() in k and k not in ['NAME', '__USAGE_DICT', '__ID_IN_USELINE']}
             else:
-                return self.getElementProperties(cur_type, None, partial_key).update(
-                    {k: v for k, v in self.elementList[ind].items()
+                temp = self.getElementProperties(cur_type, None, partial_key)
+                temp.update({k: v for k, v in self.elementList[ind].items()
                      if partial_key.upper() in k and k not in ['TYPE', 'NAME', '__USAGE_DICT', '__ID_IN_USELINE']})
+                return temp
+
         else:
             keyname = keyname.upper()
             if keyname in self.elementList[ind]:
@@ -146,6 +196,13 @@ class LatticeFile(object):
         return self.getElementProperties(elename) == other_lattice.getElementProperties(other_name)
 
     def modifyElement(self, elename, increment=False, **params):
+        '''
+        Modify properties of one element
+        :param elename: The element name to be modified
+        :param increment: Flag to choose overwrite (False, default) or add to existing value (True)
+        :param params: dictionary contains the changes.
+        :return: None
+        '''
         elename = elename.upper()
         ind = self.getElementIndex(elename)
         if ind is None:
@@ -198,20 +255,76 @@ class LatticeFile(object):
             #    if self.elementList[self.elementNameDict[self.elementList[i]['TYPE']]] == eletype:
             #        self.elementList[i][parameterName]=parameterValue
 
-    def isDrift(self, ele, parent_type=None):
+    def isDrift(self, ele_name):
+        '''
+        parent_type = self.getParentElements(ele_name)[-1]
+        if 'DRIFT' in parent_type:
+            temp=self.getElementProperties(ele_name)
+            return temp
+        else:
+            return False
+        '''
         pass
-    def isDipole(self, ele, parent_type=None):
+
+    def isDipole(self, ele_name):
+        '''
+        parent_type = self.getParentElements(ele_name)[-1]
+        if 'DIPOLE' in parent_type:
+            temp=self.getElementProperties(ele_name)
+            if 'K1' not in temp:
+                temp['K1']=0
+            return temp
+        else:
+            return False
+        '''
         pass
-    def isQuadrupole(self, ele, parent_type=None):
+
+    def isQuadrupole(self, ele_name):
+        '''
+        parent_type = self.getParentElements(ele_name)[-1]
+        if 'QUADRUPOLE' in parent_type:
+            temp=self.getElementProperties(ele_name)
+            if 'K1' not in temp:
+                temp['K1']=0
+            return temp
+        else:
+            return False
+        '''
         pass
-    def isSolenoid(self, ele, parent_type=None):
-        pass
-    def isCavity(self, ele, parent_type=None):
+
+    def isSextrupole(self, ele_name):
         pass
 
 
-    def plotBeamline(self, plt_axis, colors=('DarkOrchid', 'Maroon', 'DeepSkyBlue', 'ForestGreen'),
-                     heights=(1.2, 0.8, 0.5, 0.5), s_start=0, other_components = None):
+    def isSolenoid(self, ele_name):
+        '''
+        parent_type = self.getParentElements(ele_name)[-1]
+        if 'SOLENOID' in parent_type:
+            temp=self.getElementProperties(ele_name)
+            return temp
+        else:
+            return False
+        '''
+        pass
+
+
+
+    def isCavity(self, ele_name):
+        '''
+        parent_type = self.getParentElements(ele_name)[-1]
+        if 'CAVITY' in parent_type:
+            temp=self.getElementProperties(ele_name)
+            return temp
+        else:
+            return False
+        '''
+        pass
+
+    def splitElement(self, ele_name, num, split_ele_name=None, ):
+        pass
+
+    def plotBeamline(self, plt_axis, colors=('DarkOrchid', 'Maroon', 'DeepSkyBlue', 'DarkOrange', 'ForestGreen'),
+                     heights=(1.2, 0.8, 0.5, 0.3, 0.5), s_start=0, other_components = {}):
         '''
         :param plt_axis: matplotlib axis variable
         :param beamline_name: name of beamline to be plotted.
@@ -234,61 +347,71 @@ class LatticeFile(object):
         plt_axis.set_ylim([-1, 1])
         plt_axis.set_yticks([])
         # plt_axis.xaxis.set_ticks_position('none')
-        plt_axis.axhline(0, color='black')
-        other_components = {k.upper(): v for k, v in other_components.items()}
+        plt_axis.axhline(0, color='black', lw=0.5)
+
+        if other_components is not None:
+            other_components = {k.upper(): v for k, v in other_components.items()}
         for i in range(len(bl_list)):
             start = bl_pos[i] + s_start
             ele_name = bl_list[i]
-            ele=self.elementList[self.elementNameDict[ele_name]]
-            typelist = self.getParentElements(ele_name)
+            #ele=self.elementList[self.elementNameDict[ele_name]]
+            #typelist = self.getParentElements(ele_name)
 
             l_ele = bl_pos[i + 1] - bl_pos[i]
             #lasttype = self.elementList[indlist[-1]]['TYPE']
-            lasttype=typelist[-1]
+            #lasttype=typelist[-1]
             if l_ele > 0:
-                if self.isCavity(ele, lasttype):
-                    tempdict=self.isCavity(ele, lasttype)
-
+                tempdict = self.isCavity(ele_name)
+                if tempdict:
                     #plt_axis.add_patch(
                     #    Rectangle((start, -heights[0] / 2.0), tempdict['L'], heights[0], ec=colors[0], fc=colors[0]))
                     plt_axis.add_patch(
                         Ellipse((start+tempdict['L']/2.0, 0), tempdict['L'], heights[0] ,linewidth=1, color=colors[0]))
-
-                elif self.isDipole(ele, lasttype):
-                    tempdict=self.isDipole(ele, lasttype)
+                    continue
+                tempdict = self.isDipole(ele_name)
+                if tempdict:
                     shift = heights[1] * 0.2 * np.sign(tempdict['K1'])
                     plt_axis.add_patch(
                         Rectangle((start, -heights[1] / 2.0 + shift), tempdict['L'], heights[1], angle=0.0, ec=colors[1],
                                   fc='none'))
-
-                elif self.isQuadrupole(ele, lasttype):
-                    tempdict = self.isQuadrupole(ele, lasttype)
+                    continue
+                tempdict = self.isQuadrupole(ele_name)
+                if tempdict:
                     shift = heights[2] * 0.5 * np.sign(tempdict['K1'])
-
                     plt_axis.add_patch(
                         Rectangle((start, -heights[2] / 2.0 + shift), tempdict['L'], heights[2], angle=0.0, ec=colors[2],
                                   fc='none'))
-
-                elif self.isSolenoid( ele, lasttype):
-                    tempdict = self.isSolenoid(ele, lasttype)
+                    continue
+                tempdict = self.isSextrupole(ele_name)
+                if tempdict:
                     plt_axis.add_patch(
-                        Rectangle((start, -heights[3] / 2.0), tempdict['L'], heights[3], angle=0.0, ec=colors[3], fc='none'))
+                        Rectangle((start, -heights[3] / 2.0 ), tempdict['L'], heights[3], angle=0.0,
+                                  ec=colors[3],
+                                  fc=colors[3]))
+                    continue
+                tempdict = self.isSolenoid(ele_name)
+                if tempdict:
+                    plt_axis.add_patch(
+                        Rectangle((start, -heights[4] / 2.0), tempdict['L'], heights[4], angle=0.0, ec=colors[4], fc='none'))
+                    continue
 
-            elif not self.isDrift(ele, lasttype) and lasttype in other_components:
-                p = other_components[lasttype]
+            elif not self.isDrift(ele_name):
+                lasttype = self.getParentElements(ele_name)[-1]
+                if lasttype in other_components:
+                    p = other_components[lasttype]
 
-                if p.get('real_length', False):
-                    pass
-                else:
-                    if p.get('type', 'on_axis') == 'on_axis':
-                        h = p.get('height', 0.4)
-                        c = p.get('color', 'y')
-                        plt_axis.axvline(start + l_ele / 2.0, ymin=0.5 - h / 4.0, ymax=0.5 + h / 4.0, color=c)
+                    if p.get('real_length', False):
+                        pass
                     else:
-                        h = p.get('height', 0.3)
-                        c = p.get('color', 'k')
-                        plt_axis.axvline(start + l_ele / 2.0, ymin=1.0-h/2, ymax=1.0, color=c)
-                        plt_axis.axvline(start + l_ele / 2.0, ymin=0 / 2, ymax=h/2, color=c)
+                        if p.get('type', 'on_axis') == 'on_axis':
+                            h = p.get('height', 0.4)
+                            c = p.get('color', 'y')
+                            plt_axis.axvline(start + l_ele / 2.0, ymin=0.5 - h / 4.0, ymax=0.5 + h / 4.0, color=c)
+                        else:
+                            h = p.get('height', 0.3)
+                            c = p.get('color', 'k')
+                            plt_axis.axvline(start + l_ele / 2.0, ymin=1.0-h/2, ymax=1.0, color=c)
+                            plt_axis.axvline(start + l_ele / 2.0, ymin=0 / 2, ymax=h/2, color=c)
 
 
 
@@ -304,6 +427,12 @@ class LatticeFile(object):
             return None
 
     def appendToBeamline(self, linename, *elenames):
+        '''
+        Append elements to a line
+        :param linename: The line name to be appended. If the line does not exist, it will be created first
+        :param elenames: The list of elements to be used.
+        :return: None
+        '''
         linename = linename.upper()
 
         ind = self.getBeamlineIndex(linename)
@@ -402,10 +531,10 @@ class LatticeFile(object):
                 expandedLine.append(elename)
         return expandedLine
 
-    def setUseLine(self, linename=-1):
-        if linename == -1:
+    def setUseLine(self, linename=None):
+        if linename is None:
             linename = self.beamlineList[-1]['NAME']
-            line_ind = len(self.beamlinelist)-1
+            line_ind = len(self.beamlineList)-1
         else:
             linename=linename.upper()
             line_ind = self.getBeamlineIndex(linename)
@@ -430,38 +559,39 @@ class LatticeFile(object):
             ele_ind += 1
 
 
-    def loadAnElement(self, fromlattice, elename, prefix=''):
+    def loadAnElement(self, fromlattice, elename, prefix='', suffix=''):
         elename = elename.upper()
         prefix = prefix.upper()
+        suffix = suffix.upper()
         ind = fromlattice.getElementIndex(elename)
         if ind is not None:
             ele = copy.deepcopy(fromlattice.elementList[ind])
-            ind_this = self.getElementIndex(prefix + elename)
+            ind_this = self.getElementIndex(prefix + elename + suffix)
             if ind_this is not None:
-                compare=self.compareElements(fromlattice, prefix + ele['NAME'], other_name=ele['NAME'])
+                compare=self.compareElements(fromlattice, prefix + ele['NAME']+ suffix, other_name=ele['NAME'])
                 if compare:
                     return
                 else:
-                    print('Warning, the element {} has different definition'.format(prefix+elename))
+                    print('Warning, the element {} has different definition'.format(prefix+elename+suffix))
                     return
 
             if self.checkType(ele['TYPE']):
-                ele['NAME'] = prefix + ele['NAME']
+                ele['NAME'] = prefix + ele['NAME']+ suffix
                 ele['__USAGE_DICT'] = {}
                 ele['__ID_IN_USELINE'] = []
                 self.elementNameDict[ele['NAME']] = len(self.elementList)
                 self.elementList.append(ele)
             elif self.getElementIndex(prefix + ele['TYPE']) is None:
-                self.loadAnElement(fromlattice, ele['TYPE'], prefix)
-                ele['NAME'] = prefix + ele['NAME']
-                ele['TYPE'] = prefix + ele['TYPE']
+                self.loadAnElement(fromlattice, ele['TYPE'], prefix, suffix)
+                ele['NAME'] = prefix + ele['NAME']+ suffix
+                ele['TYPE'] = prefix + ele['TYPE']+ suffix
                 ele['__USAGE_DICT'] = {}
                 ele['__ID_IN_USELINE'] = []
                 self.elementNameDict[ele['NAME']] = len(self.elementList)
                 self.elementList.append(ele)
-            elif self.compareElements(fromlattice, prefix + ele['TYPE'], other_name=ele['TYPE']):
-                ele['NAME'] = prefix + ele['NAME']
-                ele['TYPE'] = prefix + ele['TYPE']
+            elif self.compareElements(fromlattice, prefix + ele['TYPE']+ suffix, other_name=ele['TYPE']):
+                ele['NAME'] = prefix + ele['NAME'] + suffix
+                ele['TYPE'] = prefix + ele['TYPE'] + suffix
                 ele['__USAGE_DICT'] = {}
                 ele['__ID_IN_USELINE'] = []
                 self.elementNameDict[ele['NAME']] = len(self.elementList)
@@ -481,15 +611,27 @@ class LatticeFile(object):
             print('Can not load element {} from lattice'.format(elename))
             exit(-1)
 
-    def loadALine(self, fromlattice, linename, reverse=False, prefix='', newname=''):
+    def loadALine(self, fromlattice, linename, reverse=False, prefix='', newname='', suffix=''):
+        '''
+        Load a line from other lattice to this lattice
+
+        :param fromlattice: The source lattices file
+        :param linename:  The line name in the source file
+        :param reverse: If the line is first reversed than load, default is False
+        :param prefix: Add the line with new name: prefix_linename or prefix_newname
+        :param newname: Change the line to newname instead of linename
+        :param suffix: Add the line with new name: linename_suffix or newname_suffix
+        :return: the new name of this line
+        '''
         linename = linename.upper()
         if newname == '':
             newname = linename
         else:
             newname = newname.upper()
         prefix = prefix.upper()
+        suffix = suffix.upper()
         ind = fromlattice.getBeamlineIndex(linename)
-        ind_this = self.getBeamlineIndex(prefix + newname)
+        ind_this = self.getBeamlineIndex(prefix + newname+ suffix)
         templine = []
         if ind is not None and ind_this is None:
             theline = copy.deepcopy(fromlattice.beamlineList[ind]['LINE'])
@@ -516,31 +658,32 @@ class LatticeFile(object):
             for elename in theline:
                 if fromlattice.getElementIndex(elename) is not None:
                     if elename[0] == '-':
-                        self.loadAnElement(fromlattice, elename[1:], prefix)
-                        templine.append(prefix + elename[1:])
+                        self.loadAnElement(fromlattice, elename[1:], prefix, suffix)
+                        templine.append(prefix + elename[1:]+ suffix)
 
                     else:
 
-                        self.loadAnElement(fromlattice, elename, prefix)
-                        templine.append(prefix + elename)
+                        self.loadAnElement(fromlattice, elename, prefix, suffix)
+                        templine.append(prefix + elename+ suffix)
 
 
                 elif fromlattice.getBeamlineIndex(elename) is not None:
 
                     if elename[0] == '-':
-                        self.loadALine(fromlattice, elename[1:], reverse=False, prefix=prefix)
-                        templine.append('-' + prefix + elename[1:])
+                        self.loadALine(fromlattice, elename[1:], reverse=False, prefix=prefix, suffix=suffix)
+                        templine.append('-' + prefix + elename[1:]+ suffix)
                     else:
-                        self.loadALine(fromlattice, elename, reverse=False, prefix=prefix)
-                        templine.append(prefix + elename)
-            self.appendToBeamline(prefix + newname, *templine)
+                        self.loadALine(fromlattice, elename, reverse=False, prefix=prefix, suffix= suffix)
+                        templine.append(prefix + elename+ suffix)
+            self.appendToBeamline(prefix + newname+ suffix, *templine)
         elif ind is None:
                 print("The line {} doesnot exist in the source".format(linename))
                 exit()
         elif ind_this is not None:
-                print("The line {} is already in the target".format(newname))
+                pass
+                #print("The line {} is already in the target".format(newname))
         else:
                 print("Something weird happend in loadALine when loading {}".format(linename))
                 exit()
-        return prefix + newname
+        return prefix + newname + suffix
 

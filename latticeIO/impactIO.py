@@ -264,6 +264,7 @@ class ImpactInputFile(LatticeFile):
                 }
     def __init__(self):
         LatticeFile.__init__(self)
+        self.lattice_format='Impact'
         self.header = ImpactHeader()
 
     def write(self, filename='test.in'):
@@ -326,14 +327,18 @@ class ImpactOutput(object):
     def __init__(self):
         import glob
         self.found_files=glob.glob("fort.*")
+        self.found_files.sort()
         if not self.found_files:
             print('Cannot find any outfile in this directory, Exiting\n')
             exit(-1)
 
     def read_files(self):
+        print(self.found_files)
         for fn in self.found_files:
             otype=int(fn.split('.')[-1])
+            print(otype)
             if otype == 18:
+
                 temp=np.genfromtxt(fn)
                 self.s = temp[:, 0]
                 self.vgamma = temp[:, 2]

@@ -1,1 +1,1 @@
-#from fileio.flameIO import FlameLatticeFile
+#from latticeIO.flameIO import FlameLatticeFile

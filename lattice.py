@@ -1,5 +1,5 @@
 from . import element
-from .fileio import fileIO
+from .latticeIO import fileIO
 
 import numpy as np
 import copy
@@ -10,11 +10,11 @@ class Lattice(object):
     _radiation_type=['ISR','ELOSS']
 
 
-    def __init__(self, lattice_file = None, mode='TPSA', ref_energy=1e9, radiation='ISR'):
+    def __init__(self, lattice_file = None, lattice_name=None,  mode='TPSA', ref_energy=1e9, radiation='ISR'):
 
-        self._lattice_file = None
+
         if lattice_file is not None:
-            self.read_lattice(lattice_file)
+            self.get_lattice(lattice_file, lattice_name)
         self._mode=mode
         self._ref_energy = ref_energy
         self._radiation = radiation
@@ -37,14 +37,15 @@ class Lattice(object):
     def radiation(self):
         return self._radiation
 
-    @mode.setter
+    @radiation.setter
     def radiation(self, value):
         if value.upper() in Lattice._radiation_type:
             self._radiation = value.upper()
         else:
             raise KeyError
 
-    def read_lattice(self, lattice_file):
+    def get_lattice(self, lattice_file, lattice_name):
+        self.lattice_file=lattice_file
         if isinstance(lattice_file, fileIO.LatticeFile):
             if len(lattice_file.beamlineList) > 0:
                 self.lattice_file = lattice_file
@@ -56,19 +57,18 @@ class Lattice(object):
             exit(-1)
 
         self.useline = lattice_file.useline
-        if self.useline == '':
-            self.useline = lattice_file.beamlineList[-1]['NAME']
-        self._make_sequence()
+        self.element_position, element_name_list = lattice_file.elementPosInUseLine, lattice_file.useLineList
 
 
-    def _make_sequence(self):
-        pass
-
+        for elename in element_name_list:
+            propertylist=lattice_file.getElementProperties(elename)
 
 
 
-    def floor_map(self):
-        pass
+
+
+
+
 
 
 

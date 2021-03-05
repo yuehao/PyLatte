@@ -13,47 +13,67 @@ class FlameLatticeFile(LatticeFile):
     element_type=['SOURCE','DRIFT','SBEND','QUADRUPOLE','SOLENOID','RFCAVITY','STRIPPER','EDIPOLE','EQUAD', 'BPM' ,'MARKER','GENERIC']
     def __init__(self, read_from=''):
         LatticeFile.__init__(self)
+        self.lattice_format='Flame'
         self.machine = None
         self.linename=None
         if read_from != '':
             self.parseFrom(read_from)
 
-    def isDrift(self, ele, parent_type=None):
-        if ele['TYPE']=='DRIFT' or parent_type=='DRIFT':
-            return {'L':ele['L']}
+    def isDrift(self, ele_name):
+        parent_type = self.getParentElements(ele_name)[-1]
+        if 'DRIFT' in parent_type:
+            temp=self.getElementProperties(ele_name)
+            return temp
         else:
             return False
 
-    def isDipole(self, ele, parent_type=None):
-        if ele['TYPE'] == 'SBEND' or parent_type=='SBEND':
-            return {'L': ele['L'], 'ANGLE':ele['PHI'], 'K1':0}
+    def isDipole(self, ele_name):
+        parent_type = self.getParentElements(ele_name)[-1]
+        if 'BEND' in parent_type or 'DIPOLE' in parent_type:
+            temp=self.getElementProperties(ele_name)
+            temp.update({'TYPE':parent_type})
+            if 'K1' not in temp:
+                temp['K1']=0
+            return temp
         else:
             return False
 
-    def isQuadrupole(self, ele, parent_type=None):
-        if ele['TYPE'] == 'QUADRUPOLE' or parent_type=='QUADRUPOLE':
-            return {'L': ele['L'], 'K1':ele['B2']}
+    def isQuadrupole(self, ele_name):
+        parent_type = self.getParentElements(ele_name)[-1]
+        if 'QUAD' in parent_type:
+            temp=self.getElementProperties(ele_name)
+            if 'B2' in temp:
+                temp['K1']=temp['B2']
+            elif 'V' in temp:
+                    temp['K1'] = temp['V']
+            else:
+                temp['K1']=0
+            return temp
         else:
             return False
-    def isSolenoid(self,ele, parent_type=None):
-        if ele['TYPE'] == 'SOLENOID' or parent_type=='SOLENOID':
-            return {'L': ele['L'], 'B':ele['B']}
+    def isSolenoid(self, ele_name):
+        parent_type = self.getParentElements(ele_name)[-1]
+        if 'SOLENOID' in parent_type:
+            temp=self.getElementProperties(ele_name)
+            return temp
         else:
             return False
-    def isCavity(self,ele, parent_type=None):
-        if ele['TYPE'] == 'RFCAVITY' or parent_type=='RFCAVITY':
-            return {'L': ele['L']}
+    def isCavity(self, ele_name):
+        parent_type = self.getParentElements(ele_name)[-1]
+        if 'RFCAVITY' in parent_type:
+            temp=self.getElementProperties(ele_name)
+            return temp
         else:
             return False
 
 
     def parseFrom(self, lattice_file_name):
-        with open(lattice_file_name, 'r') as f:
+        with open(lattice_file_name, 'rb') as f:
             self.machine=Machine(f)
         lattice_dict=self.machine.conf()
         self.lattice = copy.deepcopy(lattice_dict['elements'])
         self.linename = lattice_dict['name']
-        ['AMU',
+        '''['AMU',
          'Eng_Data_Dir',
          'HdipoleFitMode',
          'IonChargeStates',
@@ -68,6 +88,7 @@ class FlameLatticeFile(LatticeFile):
          'Stripper_NCharge',
 
          'sim_type']
+        '''
 
         self.AMU = lattice_dict['AMU']
         self.Eng_Data_Dir = lattice_dict['Eng_Data_Dir']
@@ -75,8 +96,8 @@ class FlameLatticeFile(LatticeFile):
         self.IonChargeStates = lattice_dict['IonChargeStates']
         self.IonEk = lattice_dict['IonEk']
         self.IonEs = lattice_dict['IonEs']
-        self.IonW = lattice_dict['IonW']
-        self.IonZ = lattice_dict['IonZ']
+        self.IonW = lattice_dict.get('IonW', -1)
+        self.IonZ = lattice_dict.get('IonZ', -1)
         self.MpoleLevel = float(lattice_dict.get("MpoleLevel", 2.0))
         self.NCharge=lattice_dict['NCharge']
         self.Stripper_IonChargeStates = lattice_dict['Stripper_IonChargeStates']
@@ -96,7 +117,8 @@ class FlameLatticeFile(LatticeFile):
         for ele in self.lattice:
             self.addElement(ele['name'],ele['type'], **ele)
             self.appendToBeamline(self.linename, ele['name'].upper())
-            self.setUseLine(self.linename)
+
+        self.setUseLine(self.linename)
 
     def checkType(self, typename, parameterName=None):
         #Should be checked by the flame parser
@@ -149,10 +171,66 @@ class FlameLatticeFile(LatticeFile):
     def write(self, out_file_name):
         with open(out_file_name, 'w') as f:
             self._output(f)
-            
-            
-            
-            
+
+    def plot_references(self, axis, axis_layout, ploting='ENERGY'):
+        if isinstance(ploting, str):
+            plist=[ploting.upper(), None]
+        elif isinstance(ploting, list) and len(ploting)==2:
+            plist=[ploting[0].upper(), ploting[1].upper()]
+
+        colors=['b','g']
+        for i in range(2):
+            if i==0:
+                ax=axis
+            elif plist[i] is None:
+                break
+            else:
+                axis_m = axis.twinx()
+                ax=axis_m
+            if plist[i]=='E' or plist[i]=='ENERGY':
+                ax.plot(self.result_ref[:, 1], self.result_ref[:, 5]/1e6, color=colors[i],label='Kinetic Energy')
+                ax.set_ylabel("Energy (MeV)")
+
+
+            elif plist[i]=='PH' or plist[i]=='PHASE':
+                ax.plot(self.result_ref[:, 1], self.result_ref[:, 6],color=colors[i], label='Ref Phase')
+                ax.set_ylabel("Phase (rad)")
+
+
+            elif plist[i]=='BG' or plist[i]=='MOMENTUM':
+                ax.plot(self.result_ref[:, 1], self.result_ref[:, 3], color=colors[i], label='Norm. Momentum')
+                ax.set_ylabel(r"$\beta\gamma$")
+
+        axis.legend(loc='best')
+        axis_layout.set_xlabel("s [m]")
+        self.plotBeamline(axis_layout)
+
+    def plot_transverse(self, axis, axis_layout, plot_orbit='xy', plot_size=None):
+        colors = ['b', 'g', 'r', 'y']
+        ci=0
+
+        if plot_orbit is not None:
+            axis.set_ylabel("Centroid (mm)")
+            if 'X' in plot_orbit.upper():
+                axis.plot(self.result_moments[:, 1], self.result_moments[:, 2], color=colors[ci], label='X centroid')
+                ci+=1
+            if 'Y' in plot_orbit.upper():
+                axis.plot(self.result_moments[:, 1], self.result_moments[:, 4], color=colors[ci], label='Y centroid')
+                ci += 1
+            axis_m = axis.twinx()
+        else:
+            axis_m=axis
+        if plot_size is not None:
+            axis_m.set_ylabel("rms beamsize (mm)")
+            if 'X' in plot_size.upper():
+                axis_m.plot(self.result_moments[:, 1], self.result_moments[:, 8], color=colors[ci], label='X rms size')
+                ci += 1
+            if 'Y' in plot_size.upper():
+                axis_m.plot(self.result_moments[:, 1], self.result_moments[:, 10], color=colors[ci], label='Y rms size')
+                ci += 1
+        axis.legend(loc='best')
+        axis_layout.set_xlabel("s [m]")
+        self.plotBeamline(axis_layout)
             
             
 
