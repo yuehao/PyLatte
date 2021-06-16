@@ -159,7 +159,7 @@ class elegantParser:
 
 
 class elegantLatticeFile(LatticeFile):
-    elegantTypes={}
+    elegantTypes=[]
     elegantParameterNames={}
     elegantTypesRev={}
     elegantTypesAsymmetry=[]
@@ -188,6 +188,8 @@ class elegantLatticeFile(LatticeFile):
         cmdstr = 'elegant tempdict.ele'
         subp.call(shlex.split(cmdstr), stdout=subp.PIPE)
 
+
+        '''
         cmdstr = 'sddsprintout tempdict.dat -param=ElementType'
         p1 = subp.Popen(shlex.split(cmdstr), stdout=subp.PIPE)
         out = p1.communicate()[0]
@@ -221,6 +223,39 @@ class elegantLatticeFile(LatticeFile):
                             elegantLatticeFile.elegantParameterNames[elenametemp][temp[0]] = temp[1]
                     elif '---' in subline:
                         flag = 1
+        '''
+
+        try:
+            f = open("tempdict.dat")
+        except FileNotFoundError :
+            print("File not accessible")
+            return
+        finally:
+            f.close()
+
+        eledict=sdds.SDDS(0)
+        eledict.load("tempdict.dat")
+        elegantLatticeFile.elegantTypes=eledict.parameterData[0]
+        
+        for i in range(len(elegantLatticeFile.elegantTypes)):
+            eletype=elegantLatticeFile.elegantTypes[i]
+            paramdict={}
+            for j in range(len(eledict.columnData[0][i])):
+                param=eledict.columnData[0][i][j]
+                dt=eledict.columnData[2][i][j].upper()
+                defval=eledict.columnData[3][i][j]
+                if dt == 'STRING':
+                    pass
+                elif dt == 'DOUBLE':
+                    defval=float(defval)
+                else:
+                    defval=int(defval)
+                paramdict[param]=defval    
+            elegantLatticeFile.elegantParameterNames[eletype]=paramdict
+
+            
+
+
 
         cmdstr = 'rm -f tempdict.ele tempdict.dat'
         subp.call(shlex.split(cmdstr))
@@ -725,11 +760,41 @@ def get_SDDS_column(SDDSfile, column_name=[], convert_to_float=True):
         return res.astype(float), cnlist[get_list], cnunit[get_list, 1]
     return res, cnlist[get_list], cnunit[get_list, 1]
 
+def read_elegant_SDDS_content(filename, column_names=None):
+    try:
+        f = open(filename)
+    except FileNotFoundError :
+        print("File not accessible")
+        return
+    finally:
+        f.close()
+    import pandas as pd
+    indcn=[]
+    sddsfile = sdds.SDDS(0)
+    sddsfile.load(filename)
+    if column_names is None:
+        column_names=sddsfile.columnName
+        indcn=[i for i in range(len(sddsfile.columnName))]
+    else:
+        column_names=list(set(column_names) & set(sddsfile.columnName))
+        for name in column_names:
+            ind = sddsfile.columnName.index(name)
+            indcn.append(ind)
+    column_list = (np.array(sddsfile.columnData)[indcn, 0, :].astype(float)).transpose()
+
+    sdds_parameters = {}
+    for para_name, para_value in zip(sddsfile.parameterName, sddsfile.parameterData):
+        sdds_parameters[para_name] = para_value[0]
+    return pd.DataFrame(data=column_list, columns=column_names), sdds_parameters
+    
+    
+
 
 def elegant_findtwiss(lattice, beamline_to_use=None, rootname='temp', matched=1,
                       initial_optics=[1, 0, 0, 0, 1, 0, 0, 0],
-                      alternate_element={}, closed_orbit=1, gamma0=1.0e4 / 0.511,
+                      alternate_element={}, gamma0=1.0e4 / 0.511,
                       divide_element=0,
+                      closed_orbit = False,
                       twiss_columns=['s', 'betax', 'alphax', 'psix', 'etax', 'etaxp',
                                      'betay', 'alphay', 'psiy', 'etay', 'etayp']
                       ):
@@ -742,6 +807,7 @@ def elegant_findtwiss(lattice, beamline_to_use=None, rootname='temp', matched=1,
     :param initial_optics: Initial optics to start with, default is [1, 0, 0, 0, 1, 0, 0, 0]
     :param alternate_element: No use for now
     :param closed_orbit:  No use for now
+    :param divide_element: Number of division of elements
     :param gamma0: The reference lorentz factor of the particle
     :param twiss_columns: The output columns of the twiss parameters, default is ['s', 'betax', 'alphax', 'psix', 'etax', 'etaxp',
                                      'betay', 'alphay', 'psiy', 'etay', 'etayp']
@@ -763,16 +829,17 @@ def elegant_findtwiss(lattice, beamline_to_use=None, rootname='temp', matched=1,
                         concat_order=3,
                         element_divisions=divide_element,
                         )
-    '''cmd_file.addCommand('closed_orbit',
-                    output='%s.clo',
-                    closed_orbit_iterations=1500,
-                    closed_orbit_accuracy=1e-12,
-                    iteration_fraction=0.3
+    if closed_orbit:
+        cmd_file.addCommand('closed_orbit',
+                        output='%s.clo',
+                        closed_orbit_iterations=1500,
+                        closed_orbit_accuracy=1e-12,
+                        iteration_fraction=0.3
 
-                    )'''
+                        )
     cmd_file.addCommand('twiss_output',
                         matched=matched,
-                        output_at_each_step=0,
+                        output_at_each_step=1,
                         filename='%s.twi',
                         radiation_integrals=1,
                         beta_x=initial_optics[0],
@@ -782,8 +849,7 @@ def elegant_findtwiss(lattice, beamline_to_use=None, rootname='temp', matched=1,
                         beta_y=initial_optics[4],
                         alpha_y=initial_optics[5],
                         eta_y=initial_optics[6],
-                        etap_y=initial_optics[7],
-
+                        etap_y=initial_optics[7]
                         )
     cmd_file.addCommand('run_control')
     cmd_file.addCommand('bunched_beam')
@@ -799,13 +865,25 @@ def elegant_findtwiss(lattice, beamline_to_use=None, rootname='temp', matched=1,
     for name in twiss_columns:
         ind = twifile.columnName.index(name)
         inds.append(ind)
-    twiss_list = np.array(twifile.columnData)[inds, 0, :].astype(float)
+    twiss_list = (np.array(twifile.columnData)[inds, 0, :].astype(float)).transpose()
     import pandas as pd
     twiss_parameter = {}
     for para_name, para_value in zip(twifile.parameterName, twifile.parameterData):
         twiss_parameter[para_name] = para_value[0]
 
-    return pd.DataFrame(data=twiss_list.transpose(), columns=twiss_columns), twiss_parameter
+    if closed_orbit:
+        clofile = sdds.SDDS(0)
+        clofile.load('{}.clo'.format(rootname))
+        inds = []
+        for name in ['x', 'xp', 'y', 'yp']:
+            ind = clofile.columnName.index(name)
+            inds.append(ind)
+        clo_list = (np.array(clofile.columnData)[inds, 0, :].astype(float)).transpose()
+        twiss_list=np.hstack((twiss_list, clo_list))
+        twiss_columns=twiss_columns+['x', 'xp', 'y', 'yp']
+
+
+    return pd.DataFrame(data=twiss_list, columns=twiss_columns), twiss_parameter
 
 
 def elegant_track(lattice, beamline_to_use=None, Npar=1, rootname='temp',

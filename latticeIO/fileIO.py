@@ -210,7 +210,7 @@ class LatticeFile(object):
             raise KeyError
         for k, v in params.items():
             if self.checkType(self.elementList[ind]['TYPE'], k):
-                if k in self.elementList[ind] and increment:
+                if k.upper() in self.elementList[ind] and increment:
                     self.elementList[ind][k.upper()] += v
                 else:
                     self.elementList[ind][k.upper()] = v
