@@ -137,25 +137,37 @@ def pass_cavity_simple(coor, voltage, freq, phase):
     pass
 
 
-def sqr_ps2_px2(coor):
-    '''
-    calculate the square of the ps
-    :param coor: coordinate of the whole bunch coor[i,0] is the x of the ith particle
-    :param exact_Hamiltonian: 1, Hamiltonian for [x,px,y,py,z=-\beta ct, delta=dp/p]
 
-    :return:
-    '''
-    return (1.0+coor[_de_])*(1.0+coor[_de_])-coor[_py_]*coor[_py_]
-def pass_dipole_geo(coor, cur, l, math_lib):
-    psx2=sqr_ps2_px2(coor)
-    from math import sin,cos
-    sintheta=sin(cur*l)
-    costheta=cos(cur*l)
+    
+
+
+def pass_dipole_exact(coor, cur, l, math_lib):
+    psx2=(1.0+coor[_de_])*(1.0+coor[_de_])-coor[_py_]*coor[_py_]
+    import math
+    sintheta=math.sin(cur*l)
+    costheta=math.cos(cur*l)
 
     ps_old=math_lib.sqrt(psx2-coor[_px_]*coor[_px_])
-    coor_2=coor[_px_]*costheta+(ps_old-1-coor[_x_]*cur)*sintheta
-    coor_2_d = -cur * coor[_px_] * sintheta + cur * (ps_old - 1 - coor[_x_] * cur) * costheta
-    ps = math_lib.sqrt(psx2 - coor_2 * coor_2)
+    temp1=ps_old-1.0-coor[_x_]*cur
+    px_new=coor[_px_]*costheta+(temp1)*sintheta
+    cur_px_new_d = -coor[_px_] * sintheta + (temp1) * costheta
+    px_inc=px_new-coor[_px_]
+
+
+    ps_new = math_lib.sqrt(psx2 - px_new * px_new)
+    x_inc=(ps_new-1.0-cur_px_new_d)/cur-coor[_x_]
+
+    sqr_psx2=math_lib.sqrt(psx2)
+    arcsin_d=math_lib.arcsin(coor[_px_]/sqr_psx2)-math_lib.arcsin(px_new/sqr_psx2)
+    y_inc=coor[_py_]*(l+arcsin_d/cur)
+
+    z_inc=(1.0+coor[_de_])*(l+arcsin_d/cur) -l
+
+    coor[_x_]+=x_inc
+    coor[_px_]+=px_inc
+    coor[_y_]+=y_inc
+    coor[_z_]+=z_inc
+
 
 
 

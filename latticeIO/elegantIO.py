@@ -117,6 +117,7 @@ class elegantParser:
 
     def p_bline(self, p):
         '''bline : STRING
+                | NUMBER '*' STRING
                 | bline ',' STRING
                 | bline ',' NUMBER '*' STRING
                 | bline ',' '(' bline ')'

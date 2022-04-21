@@ -2,10 +2,9 @@ import numpy as np
 
 def draw_resonance_lines(ax, tunex_range=[0,1], tuney_range=[0,1], synchro_line=False,
                          synchro_order=[1,], synchro_freq=0.01,
-                         max_order=8, line_width=0.4, coupling=True, working_point=None):
+                         max_order=8, line_width=0.4, coupling=True, working_point=None,
+                         maximum_alpha=0.8, minimum_alpha=0.2):
     n_dots = 2
-    minimum_alpha=0.2
-    maximum_alpha=0.6
     ax.set_aspect('equal')
     ax.set_xlabel('Horizontal Tune')
     ax.set_ylabel('Vertical Tune')
